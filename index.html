@@ -122,7 +122,7 @@ main{min-width:0;container-type:inline-size;padding-block:28px 120px;padding-lef
 /* тьютор сдвигает содержимое, а не перекрывает его, если остаётся хотя бы ~560px под текст; на меньших окнах выезжает поверх, как раньше */
 @media (min-width:1000px){body.tutor-open .shell.nav-off{margin-right:440px}}
 @media (min-width:1300px){body.tutor-open .shell{margin-right:440px}}
-@media (prefers-reduced-motion:reduce){.shell,.side{transition:none!important}}
+@media (prefers-reduced-motion:reduce){.shell,.side,.drawer{transition:none!important}}
 
 /* ---------- article ---------- */
 .eyebrow{font:600 12px var(--f-mono);letter-spacing:.06em;color:var(--pen);text-transform:uppercase}
@@ -367,9 +367,9 @@ textarea.qin{min-height:70px;resize:vertical;font-family:var(--f-mono)}
 @media (prefers-reduced-motion:reduce){.fc{transition:none}}
 
 /* tutor drawer */
-.drawer{position:fixed;top:calc(57px + env(safe-area-inset-top,0px));right:0;bottom:0;width:min(440px,100vw);z-index:55;background:var(--card);border-left:1px solid var(--line);box-shadow:var(--shadow);display:flex;flex-direction:column;transform:translateX(105%);transition:transform .25s;padding-right:env(safe-area-inset-right,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-.drawer.open{transform:none}
-.drawer:not(.open){visibility:hidden}
+.drawer{position:fixed;top:calc(57px + env(safe-area-inset-top,0px));right:0;bottom:0;width:min(440px,100vw);z-index:55;background:var(--card);border-left:1px solid var(--line);box-shadow:var(--shadow);display:flex;flex-direction:column;transform:translateX(105%);visibility:hidden;transition:transform .25s,visibility 0s .25s;padding-right:env(safe-area-inset-right,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+/* visibility меняется с задержкой на время анимации: при закрытии панель успевает выехать, а не пропадает сразу */
+.drawer.open{transform:none;visibility:visible;transition:transform .25s,visibility 0s}
 html{overflow-x:clip}
 .drawer .dh{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
 .drawer .dh b{font-family:var(--f-display);font-size:15px}
