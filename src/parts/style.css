@@ -68,7 +68,6 @@ h1,h2,h3{font-family:var(--f-display);font-weight:600;line-height:1.2;text-wrap:
 .tbtn:hover{border-color:var(--pen)}
 .tbtn.primary{background:var(--pen);border-color:var(--pen);color:var(--paper)}
 .tbtn svg{width:16px;height:16px}
-.menu-btn{display:none}
 .xp{font:600 13px var(--f-mono);color:var(--ink-2);display:flex;align-items:center;gap:8px}
 .xp .bar{width:90px;height:6px;border-radius:9px;background:var(--paper-2);overflow:hidden}
 .xp .bar i{display:block;height:100%;background:var(--pen);border-radius:9px;transition:width .4s}
@@ -98,11 +97,18 @@ main{min-width:0;padding-block:28px 120px;padding-left:max(16px,env(safe-area-in
   .shell{grid-template-columns:minmax(0,1fr)}
   .side{position:fixed;left:0;top:calc(57px + env(safe-area-inset-top,0px));bottom:0;width:min(86vw,320px);z-index:45;transform:translateX(-105%);transition:transform .25s;background:var(--paper);box-shadow:var(--shadow);height:auto}
   .side.open{transform:none}
-  .menu-btn{display:inline-flex}
   .xp .bar{display:none}
   .logo small{display:none}
 }
 @media (max-width:560px){ .top .lbl{display:none} }
+/* десктоп: оглавление сворачивается кнопкой ☰; колонка сетки и само оглавление уезжают синхронно */
+@media (min-width:901px){
+  .shell{transition:grid-template-columns .25s}
+  .side{width:var(--side);transition:transform .25s,visibility 0s}
+  .shell.nav-off{grid-template-columns:0 minmax(0,1fr)}
+  .shell.nav-off .side{transform:translateX(-100%);visibility:hidden;transition:transform .25s,visibility 0s .25s}
+}
+@media (prefers-reduced-motion:reduce){.shell,.side{transition:none!important}}
 
 /* ---------- article ---------- */
 .eyebrow{font:600 12px var(--f-mono);letter-spacing:.06em;color:var(--pen);text-transform:uppercase}

@@ -1,7 +1,13 @@
 /* ================= boot ================= */
 (async function boot() {
   Store.load(); AITask.load();
-  $('#menu').onclick = () => $('#side').classList.toggle('open');
+  const narrow = matchMedia('(max-width:900px)'), shell = $('.shell');
+  try { shell.classList.toggle('nav-off', localStorage.getItem('pvk-nav-off') === '1'); } catch (e) { }
+  $('#menu').onclick = () => {
+    if (narrow.matches) { $('#side').classList.toggle('open'); return; } // узкий экран: оглавление выезжает поверх содержимого
+    const off = shell.classList.toggle('nav-off');
+    try { localStorage.setItem('pvk-nav-off', off ? '1' : '0'); } catch (e) { }
+  };
   $('#tutor-btn').onclick = () => Tutor.toggle();
   $('#tclose').onclick = () => Tutor.toggle(false);
   $('#tstop').onclick = () => Tutor.ctl && Tutor.ctl.abort();
