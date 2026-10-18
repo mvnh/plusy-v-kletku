@@ -1,0 +1,735 @@
+<section>
+<h2><span class="sn">10.1</span> Объявление и определение функций</h2>
+<aside class="c c-def"><p><b>Структурное программирование</b> — парадигма, в основе которой лежит представление программы в виде иерархической структуры блоков (логически объединённых последовательностей инструкций).</p></aside>
+<p>Основные принципы:</p>
+<ul><li>используются операторы последовательности, ветвления и циклы;</li><li>операторы можно вкладывать друг в друга;</li><li>повторяющиеся фрагменты объединяются в подпрограммы — <b>функции</b>.</li></ul>
+<aside class="c c-def"><p><b>Функция</b> — элемент программы, который связывает последовательность инструкций с идентификатором (именем функции) и списком параметров.</p></aside>
+<script type="text/x-cpp">
+ReturnType Name(Type1 p1, Type2 p2, ...) {
+    // тело функции
+}
+</script>
+<script type="text/x-cpp" data-run data-stdin="7 3">
+#include <iostream>
+
+// функция поиска максимума двух чисел
+int ownMax(int x, int y) {
+    return x > y ? x : y;
+}
+
+int main() {
+    int a;
+    int b;
+    std::cin >> a >> b;
+    std::cout << ownMax(a, b) << '\n';
+    return 0;
+}
+</script>
+<p>Как и любую сущность, перед использованием функцию нужно <b>объявить</b>, но не обязательно <b>определить</b>.</p>
+<aside class="c c-imp" data-l="Упражнение 10.1: объявление vs определение"><p><b>Объявление (declaration)</b> знакомит компилятор с существованием сущности (функции, переменной, класса), но не даёт полной реализации и не выделяет память.</p><p><b>Определение (definition)</b> даёт полную реализацию функции или выделяет память под переменную. Определение — тоже объявление (но не наоборот).</p></aside>
+<script type="text/x-cpp" data-run data-stdin="2 9">
+#include <iostream>
+
+// ОБЪЯВЛЕНИЕ функции ownMax — сообщаем компилятору о её существовании и сигнатуре
+int ownMax(int x, int y);
+
+int main() {
+    int a; // ОПРЕДЕЛЕНИЕ переменной a (объявление + выделение памяти)
+    int b; // ОПРЕДЕЛЕНИЕ переменной b
+    std::cin >> a >> b;
+    std::cout << ownMax(a, b) << '\n'; // используем объявленную функцию
+    return 0;
+}
+
+// ОПРЕДЕЛЕНИЕ функции ownMax — предоставляем реализацию (это тоже объявление)
+int ownMax(int x, int y) {
+    return x > y ? x : y;
+}
+</script>
+<ul>
+<li>Синтаксис <code>int ownMax(int x, int y);</code> называется <b>объявлением (прототипом)</b> функции.</li>
+<li>Объявление (возможно, с определением) должно <b>предшествовать</b> использованию.</li>
+<li>В объявлении можно опускать имена параметров: <code>int ownMax(int, int);</code></li>
+</ul>
+
+<h3>ODR — One Definition Rule</h3>
+<aside class="c c-imp" data-l="ODR, правило одного определения"><ol>
+<li>Любая переменная, функция, класс, шаблон или перечисление должны быть <b>определены ровно один раз</b> во всей программе.</li>
+<li>Объявлений может быть сколько угодно, определение — одно.</li>
+<li>Для inline-функций, inline-переменных (C++17), констант времени компиляции и шаблонов допускается несколько определений, но они должны быть идентичными во всех единицах трансляции. (Если сложно — пока пропусти.)</li>
+</ol></aside>
+<script type="text/x-cpp">
+// OK
+int ownMax(int, int y);
+int ownMax(int a, int b);
+int ownMax(int, int);
+
+int main() { ... }
+</script>
+<script type="text/x-cpp" data-run data-ce>
+// Ошибка: два определения
+int ownMax(int x, int y) {
+    return x > y ? x : y;
+}
+
+int ownMax(int a, int b) {
+    return a > b ? a : b;
+}
+
+int main() {}
+</script>
+<aside class="c c-prod"><p>В реальных проектах объявления живут в заголовочных файлах <code>.h</code>, а определения — в <code>.cpp</code>. Положил определение обычной функции в заголовок, подключил его в двух <code>.cpp</code> — и линковщик выдаёт <code>multiple definition of …</code>. Это ODR в дикой природе. На семинаре 7 ровно такие задачи: «реализуйте решение в трёх файлах».</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">10.2</span> Параметры функций</h2>
+<p>Параметры в объявлении — <b>формальные</b>, значения при вызове — <b>фактические</b>:</p>
+<script type="text/x-cpp">
+int ownMax(int x, int y) { // x, y — формальные параметры
+    return x > y ? x : y;
+}
+int main() {
+    std::cout << ownMax(1, -1) << '\n'; // 1, -1 — фактические параметры
+    return 0;
+}
+</script>
+<aside class="c c-imp" data-l="Передача по значению"><ol>
+<li>Внутри функции создаются новые независимые переменные — формальные параметры.</li>
+<li>В них <b>копируются</b> значения фактических аргументов.</li>
+<li>Изменения формальных параметров не влияют на исходные переменные.</li>
+</ol></aside>
+<div class="trace" data-title="Передача по значению: у функции свои копии">
+<script type="text/x-cpp">
+int ownMax(int x, int y) {
+    x = x > y ? x : y;
+    return x;
+}
+
+int main() {
+    int x = 0;
+    int y = 1;
+    std::cout << ownMax(x, y) << '\n';
+    std::cout << x << ' ' << y << '\n';
+}
+</script>
+<script type="application/json">{"steps":[
+{"l":7,"n":"В <code>main</code> свои <code>x</code> и <code>y</code>.","st":[{"f":"main()","v":[["x","int","0",{"a":"0x7ffc18"}]]}]},
+{"l":8,"n":"","st":[{"f":"main()","v":[["x","int","0",{"a":"0x7ffc18"}],["y","int","1",{"a":"0x7ffc14"}]]}]},
+{"l":1,"n":"Вызов <code>ownMax(x, y)</code>: на стеке новый кадр, туда <b>скопировали</b> 0 и 1. Имена совпадают, но это <b>другие</b> переменные, смотри на адреса.","st":[{"f":"main()","v":[["x","int","0",{"a":"0x7ffc18"}],["y","int","1",{"a":"0x7ffc14"}]]},{"f":"ownMax(int, int)","v":[["x","int","0",{"a":"0x7ffbf8"}],["y","int","1",{"a":"0x7ffbf4"}]]}]},
+{"l":2,"n":"Меняем <code>x</code> внутри функции — меняется только копия.","st":[{"f":"main()","v":[["x","int","0",{"a":"0x7ffc18"}],["y","int","1",{"a":"0x7ffc14"}]]},{"f":"ownMax(int, int)","v":[["x","int","1",{"a":"0x7ffbf8"}],["y","int","1",{"a":"0x7ffbf4"}]]}]},
+{"l":9,"n":"<code>return x</code>: значение 1 вернулось в <code>main</code>, кадр <code>ownMax</code> исчез вместе с копиями.","st":[{"f":"main()","v":[["x","int","0",{"a":"0x7ffc18"}],["y","int","1",{"a":"0x7ffc14"}]]}],"out":"1\n"},
+{"l":10,"n":"Оригинальный <code>x</code> в <code>main</code> по-прежнему 0.","st":[{"f":"main()","v":[["x","int","0",{"a":"0x7ffc18"}],["y","int","1",{"a":"0x7ffc14"}]]}],"out":"1\n0 1\n"}
+]}</script>
+</div>
+<aside class="c c-imp"><p>Копируются <b>только значения</b>, а не сами переменные:</p>
+<ul>
+<li>для простых типов (<code>int</code>, <code>double</code>, <code>char</code>…) — копируется значение;</li>
+<li>для объектов — вызывается конструктор копирования;</li>
+<li>для массивов — копируется указатель на первый элемент (фактически передаётся указатель, а не все элементы);</li>
+<li>для указателей — копируется адрес, но не данные по адресу.</li>
+</ul></aside>
+
+<h3>Параметры по умолчанию</h3>
+<p>Некоторые параметры могут иметь значение по умолчанию, тогда при вызове их можно опустить. Такие параметры могут идти <b>только в конце</b> списка.</p>
+<script type="text/x-cpp">
+int ownMax(int x, int y = 0);     // OK
+int ownMin(int x = 1, int y = 0); // OK
+int ownSum(int x = 0, int y);     // CE
+
+int main() {
+    ownMax(1, 2);
+    ownMax(1);
+    ownMin(1, 2);
+    ownMin(1);
+    ownMin();
+    return 0;
+}
+</script>
+<aside class="c c-tip" data-l="Упражнение 10.2: почему только в конце?"><p>Аргументы сопоставляются с параметрами <b>слева направо по позиции</b>. Если бы было <code>f(int x = 0, int y)</code>, то в вызове <code>f(5)</code> пятёрка ушла бы в <code>x</code>, а <code>y</code> остался бы без значения. Пропускать параметры «в середине» синтаксис не умеет: <code>f(, 5)</code> не бывает.</p></aside>
+<p>Если значения по умолчанию указаны в объявлении, в определении их не повторяют:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+// объявление с параметром по умолчанию
+int ownMax(int, int = 0); // y по умолчанию 0
+int ownMax(int, int);     // объявление ТОЙ ЖЕ функции (значения не повторяются!)
+
+int main() {
+    int a = 5;
+    std::cout << ownMax(a) << '\n';    // второй берётся по умолчанию (0)
+    std::cout << ownMax(a, 9) << '\n'; // два аргумента
+}
+
+// определение — параметры по умолчанию НЕ повторяются!
+int ownMax(int x, int y) {
+    return x > y ? x : y;
+}
+</script>
+<ol>
+<li>Параметры по умолчанию указываются один раз, обычно при первом объявлении.</li>
+<li>Значения по умолчанию задаются только для последних параметров.</li>
+<li>После параметра со значением по умолчанию не может идти параметр без него.</li>
+</ol>
+<script type="text/x-cpp">
+void f(int x = 0, int y);  // ОШИБКА: параметр без значения после параметра с ним
+
+void g(int x = 5);         // первое объявление
+void g(int x = 10);        // ОШИБКА: повторное значение по умолчанию
+
+void h(int x, int y = 0, int z = 0); // OK
+void h(int x, int y, int z);         // OK: определение без значений по умолчанию
+</script>
+</section>
+
+<section>
+<h2><span class="sn">10.3</span> Возвращаемое значение</h2>
+<ul>
+<li>Тип возвращаемого значения пишется перед именем функции.</li>
+<li>Результат возвращается оператором <code>return</code>.</li>
+<li>Значение выражения после <code>return</code> при необходимости (и возможности) преобразуется в возвращаемый тип.</li>
+</ul>
+<script type="text/x-cpp">
+int F() { return 0; }       // OK — int напрямую
+int G() { return 1.0; }     // OK — 1.0 преобразуется в 1 (double -> int)
+int H() { return "Hello"; } // CE — строка не преобразуется в int
+</script>
+<p>Операторов <code>return</code> может быть несколько:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+int calculate(int x, int y, char c) {
+    if (c == '+') {
+        return x + y;
+    }
+    if (c == '-') {
+        return x - y;
+    }
+    if (c == '*') {
+        return x * y;
+    }
+    return x / y;
+}
+int main() {
+    std::cout << calculate(6, 3, '+') << ' ' << calculate(6, 3, '-') << ' '
+              << calculate(6, 3, '*') << ' ' << calculate(6, 3, '/') << '\n';
+}
+</script>
+<aside class="c c-imp"><p><code>else</code> после <code>return</code> не нужен: <code>return</code> завершает выполнение функции.</p></aside>
+<aside class="c c-ub"><p>Если функция, которая должна вернуть значение, ничего не вернула, ошибки компиляции нет, но использование результата — <b>UB</b>:</p>
+<script type="text/x-cpp">
+int ownMax(int x, int y) {
+    if (x > 0) {
+        return x > y ? x : y;
+    }
+} // а если x <= 0?
+
+int main() {
+    ownMax(1, -1);               // OK
+    std::cout << ownMax(-1, -1); // UB
+    return 0;
+}
+</script>
+<p>clang в таком случае часто вставляет «ловушку», и программа просто падает. Компиляторы предупреждают (<code>-Wreturn-type</code>), не игнорируй это предупреждение.</p></aside>
+<p>Чтобы сказать «функция ничего не возвращает», используют <code>void</code>. Досрочно выйти из такой функции можно <code>return;</code> без значения:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+void print(int x) {
+    if (x < 0) return;
+    std::cout << x << '\n';
+}
+
+int main() {
+    print(0);
+    print(-5); // ничего не выведет
+    print(7);
+    return 0;
+}
+</script>
+</section>
+
+<section>
+<h2><span class="sn">10.4</span> Статические локальные переменные</h2>
+<aside class="c c-def"><p><b>Статическая локальная переменная</b> — переменная, объявленная внутри функции или блока с модификатором <code>static</code>.</p>
+<ol>
+<li>Видна только внутри блока (функции), где объявлена.</li>
+<li>Инициализируется <b>ровно один раз</b> — при первом попадании выполнения в её объявление. Без инициализатора — нулём. Живёт до конца программы.</li>
+<li>В многопоточных программах гарантируется, что инициализацию выполнит ровно один поток.</li>
+</ol></aside>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+int counter() {
+    static int x = 1; // инициализируется один раз при первом вызове
+    return x++;       // возвращает текущее значение, затем увеличивает
+}
+
+int main() {
+    std::cout << counter() << '\n'; // 1 (x = 1, затем станет 2)
+    std::cout << counter() << '\n'; // 2
+    std::cout << counter() << '\n'; // 3
+}
+</script>
+<aside class="c c-imp"><ol><li>Инициализация — только при первом вызове.</li><li>Последующие вызовы её пропускают.</li><li>Значение сохраняется между вызовами.</li><li>Несмотря на «глобальное» время жизни, доступна только внутри своей функции.</li></ol></aside>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+int accumulate(int value) {
+    static int total; // инициализируется 0 по умолчанию
+    total += value;
+    return total;
+}
+
+int main() {
+    std::cout << accumulate(5) << '\n';  // 5 (0 + 5)
+    std::cout << accumulate(10) << '\n'; // 15 (5 + 10)
+    std::cout << accumulate(-3) << '\n'; // 12 (15 - 3)
+}
+</script>
+<div class="qz" data-type="out" data-ans="1 1 2 1 3 1">
+<div class="q">Что выведет программа?</div>
+<script type="text/x-cpp">
+#include <iostream>
+int f() {
+    static int s = 0;
+    int a = 0;
+    ++s; ++a;
+    return s * 10 + a;
+}
+int main() {
+    for (int i = 0; i < 3; ++i) {
+        int r = f();
+        std::cout << r / 10 << ' ' << r % 10 << ' ';
+    }
+}
+</script>
+<div class="why">Статическая <code>s</code> копится между вызовами (1, 2, 3), а обычная <code>a</code> каждый раз создаётся заново: 0 → 1. <code>r / 10</code> = s, <code>r % 10</code> = a. Вывод: <b>1 1 2 1 3 1</b>. Если бы <code>a</code> тоже была <code>static</code>, получилось бы 1 1 2 2 3 3.</div>
+</div>
+<aside class="c c-prod"><p>«Статический локальный объект» — каноничный способ сделать ленивый синглтон (Meyers singleton): <code>Logger&amp; get() { static Logger inst; return inst; }</code>. Создастся при первом вызове, ровно один раз, потокобезопасно — благодаря тому самому пункту 3.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">10.5</span> Перегрузка функций</h2>
+<aside class="c c-hist"><p>В C функции не могут иметь одинаковые имена, даже с разными параметрами. Наследие видно в <code>&lt;cmath&gt;</code>: <code>abs</code>, <code>labs</code>, <code>llabs</code>, <code>fabsf</code>, <code>fabs</code>, <code>fabsl</code> — шесть имён для одного действия.</p></aside>
+<aside class="c c-def"><p><b>Перегрузка функций (overloading)</b> — возможность определить несколько функций с одинаковым именем, но разной <b>сигнатурой</b>: имя, количество, порядок и типы параметров. <b>Возвращаемый тип в сигнатуру не входит.</b> Компилятор выбирает функцию по количеству и типам аргументов.</p></aside>
+<script type="text/x-cpp">
+int abs(int x);
+long abs(long x);
+long long abs(long long x);
+float abs(float x);
+double abs(double x);
+long double abs(long double x);
+</script>
+<p>Функции должны отличаться: 1) количеством параметров; 2) типами; 3) последовательностью типов.</p>
+<aside class="c c-imp"><p>Только возвращаемый тип — <b>не основание</b> для перегрузки. Функции с одинаковыми параметрами и разными возвращаемыми типами — ошибка компиляции.</p></aside>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+int minus(int x) {
+    return -x;
+}
+
+int minus(int x, int y) {
+    return x - y;
+}
+
+int main() {
+    std::cout << minus(5) << '\n';     // -5
+    std::cout << minus(10, 3) << '\n'; // 7
+}
+</script>
+<script type="text/x-cpp" data-run data-ce>
+// ОШИБКА КОМПИЛЯЦИИ: одинаковые параметры, разные возвращаемые типы
+int ownAbs(int x) {
+    return x > 0 ? x : -x;
+}
+
+double ownAbs(int y) { // CE: functions that differ only in their return type cannot be overloaded
+    return y > 0 ? y : -y;
+}
+
+int main() {}
+</script>
+<aside class="c c-imp"><ol><li>Модификаторы верхнего уровня (<code>const</code>, <code>volatile</code>) при перегрузке не учитываются.</li><li>Параметры по умолчанию могут влиять на разрешение перегрузки.</li><li>Преобразования типов учитываются при выборе наиболее подходящей функции.</li></ol></aside>
+<h3>Разрешение перегрузки</h3>
+<p>Выбор подходящей функции называется <b>разрешением перегрузки</b>. Оно опирается только на имя и типы аргументов:</p>
+<ol>
+<li>Собрать все функции-кандидаты с данным именем.</li>
+<li>Оставить те, что можно вызвать с данными аргументами.</li>
+<li>Выбрать наилучшую:
+<ul><li>сначала <b>точное совпадение</b> типов;</li>
+<li>затем <b>расширение (promotion)</b>;</li>
+<li>затем <b>стандартные преобразования</b>;</li>
+<li>затем пользовательские преобразования.</li></ul></li>
+<li>Если несколько одинаково подходящих — ошибка (<b>неоднозначность</b>).</li>
+</ol>
+<aside class="c c-ub" data-l="⚠ Уточнение к конспекту: что такое promotion"><p>В конспекте расширением названы <code>int → long → long long</code> и <code>float → double</code>. По стандарту promotion — это только: типы «меньше <code>int</code>» (<code>char</code>, <code>short</code>, <code>bool</code>) → <code>int</code>, и <code>float → double</code>. А <code>int → long</code>, <code>int → double</code>, <code>double → long double</code>, <code>long → int</code> — уже <b>стандартные преобразования</b>, все одного ранга. Это видно на практике: вызов <code>f(5)</code> при <code>f(long)</code> и <code>f(double)</code> неоднозначен. На экзамене формулируй по конспекту, но знай, как работает компилятор.</p></aside>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+int F(int) { return 1; }
+int F(double) { return 2; }
+int F(char) { return 3; }
+
+int main() {
+    std::cout << F(0) << F(0.0) << F('0') << '\n'; // 123
+    std::cout << F(0.0f) << '\n';  // 2: float -> double — promotion
+    std::cout << F(short(5)) << '\n'; // 1: short -> int — promotion
+}
+</script>
+<p>Пример 1.127 из конспекта. В нём опечатка: третья строка повторяет вторую. Вот как неоднозначность выглядит на самом деле:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+void process(int x) { std::cout << "int\n"; }
+void process(double x) { std::cout << "double\n"; }
+
+int main() {
+    process(5);    // OK: int
+    process(5.0);  // OK: double
+    process(5.0f); // OK: double — float -> double это promotion, а не преобразование
+    // process(5L); // ОШИБКА: неоднозначность — long -> int и long -> double
+    //              // это стандартные преобразования одного ранга
+}
+</script>
+<p>Раскомментируй последнюю строку и запусти, чтобы увидеть ошибку неоднозначности.</p>
+<aside class="c c-imp"><p>Все стандартные преобразования считаются <b>равными</b>, ни одно не приоритетнее другого.</p></aside>
+<aside class="c c-imp"><p>При выборе перегрузки <code>const</code> <b>на верхнем уровне игнорируется</b>, то есть <code>f(int)</code> и <code>f(const int)</code> — одна и та же функция!</p>
+<script type="text/x-cpp">
+void f(int);        /* <=> */ void f(const int);
+void f(int*);       /* <=> */ void f(int* const);
+void f(const int*); /* <=> */ void f(const int* const);
+
+void f(int&);       /* != */  void f(const int&);
+void f(int*);       /* != */  void f(const int*);
+</script>
+<p>Почему? Параметр передаётся по значению: функция получает копию, и вызывающему всё равно, константная она внутри или нет. А <code>const int*</code> — это константность того, на что указывают, она «видна снаружи».</p></aside>
+<div class="qz" data-type="single" data-ans="2">
+<div class="q">Есть <code>void g(long);</code> и <code>void g(double);</code>. Что будет при вызове <code>g('a')</code>?</div>
+<ol><li>Вызовется <code>g(long)</code> — ближе к целым</li><li>Вызовется <code>g(double)</code></li><li>Ошибка: неоднозначность</li></ol>
+<div class="why"><code>char → long</code> и <code>char → double</code> — оба стандартные преобразования (promotion у <code>char</code> только в <code>int</code>, а <code>g(int)</code> нет). Одинаковый ранг → неоднозначность.</div>
+</div>
+</section>
+
+<section>
+<h2><span class="sn">10.6</span> Рекурсия</h2>
+<aside class="c c-def"><p><b>Рекурсия</b> — метод решения задач, основанный на решении аналогичной задачи меньшего размера.</p><p><b>Рекурсивная функция</b> — функция, которая вызывает сама себя.</p></aside>
+<p>Самая простая — <b>прямая</b> рекурсия: функция вызывает себя непосредственно. Типичный пример — факториал:</p>
+<script type="text/x-cpp">
+int factorial(int n) {
+    return n <= 1 ? 1 : n * factorial(n - 1);
+}
+</script>
+<p>Каждая корректная рекурсивная функция содержит две обязательные части:</p>
+<ol><li><b>базовый случай</b> — условие завершения рекурсии;</li><li><b>рекурсивный шаг</b> — вызов функции с упрощённой задачей.</li></ol>
+<p>Посмотри, как растёт и сворачивается стек вызовов:</p>
+<div class="trace" data-title="Стек рекурсии: factorial(4)">
+<script type="text/x-cpp">
+int factorial(int n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}
+
+int main() {
+    int r = factorial(4);
+    std::cout << r << '\n';
+}
+</script>
+<script type="application/json">{"steps":[
+{"l":7,"n":"<code>main</code> вызывает <code>factorial(4)</code>.","st":[{"f":"main()","v":[["r","int","?"]]}]},
+{"l":3,"n":"Кадр <code>factorial</code> с <code>n = 4</code>. До базового случая далеко: нужно <code>4 * factorial(3)</code>. Умножение «ждёт» результат.","st":[{"f":"main()","v":[["r","int","?"]]},{"f":"factorial","note":"ждёт 4 * …","v":[["n","int","4",{"id":"n4"}]]}]},
+{"l":3,"n":"Новый кадр с <code>n = 3</code>. У каждого вызова <b>свой</b> <code>n</code>.","st":[{"f":"main()","v":[["r","int","?"]]},{"f":"factorial","note":"ждёт 4 * …","v":[["n","int","4",{"id":"n4"}]]},{"f":"factorial","note":"ждёт 3 * …","v":[["n","int","3",{"id":"n3"}]]}]},
+{"l":3,"n":"<code>n = 2</code> — ещё глубже.","st":[{"f":"main()","v":[["r","int","?"]]},{"f":"factorial","note":"ждёт 4 * …","v":[["n","int","4",{"id":"n4"}]]},{"f":"factorial","note":"ждёт 3 * …","v":[["n","int","3",{"id":"n3"}]]},{"f":"factorial","note":"ждёт 2 * …","v":[["n","int","2",{"id":"n2"}]]}]},
+{"l":2,"n":"<code>n = 1</code> — <b>базовый случай</b>! Возвращаем 1 без новых вызовов. Глубина стека — 5 кадров. Отсюда O(n) памяти у рекурсии.","st":[{"f":"main()","v":[["r","int","?"]]},{"f":"factorial","note":"ждёт 4 * …","v":[["n","int","4",{"id":"n4"}]]},{"f":"factorial","note":"ждёт 3 * …","v":[["n","int","3",{"id":"n3"}]]},{"f":"factorial","note":"ждёт 2 * …","v":[["n","int","2",{"id":"n2"}]]},{"f":"factorial","note":"return 1","v":[["n","int","1",{"id":"n1"}]]}]},
+{"l":3,"n":"Сворачиваемся: кадр с <code>n = 1</code> снят, <code>2 * 1 = 2</code> возвращается выше.","st":[{"f":"main()","v":[["r","int","?"]]},{"f":"factorial","note":"ждёт 4 * …","v":[["n","int","4",{"id":"n4"}]]},{"f":"factorial","note":"ждёт 3 * …","v":[["n","int","3",{"id":"n3"}]]},{"f":"factorial","note":"return 2 * 1","v":[["n","int","2",{"id":"n2"}]]}]},
+{"l":3,"n":"<code>3 * 2 = 6</code>.","st":[{"f":"main()","v":[["r","int","?"]]},{"f":"factorial","note":"ждёт 4 * …","v":[["n","int","4",{"id":"n4"}]]},{"f":"factorial","note":"return 3 * 2","v":[["n","int","3",{"id":"n3"}]]}]},
+{"l":3,"n":"<code>4 * 6 = 24</code>.","st":[{"f":"main()","v":[["r","int","?"]]},{"f":"factorial","note":"return 4 * 6","v":[["n","int","4",{"id":"n4"}]]}]},
+{"l":8,"n":"Результат долетел до <code>main</code>.","st":[{"f":"main()","v":[["r","int","24"]]}],"out":"24\n"}
+]}</script>
+</div>
+<p>Ту же задачу можно решить итеративно:</p>
+<script type="text/x-cpp">
+int factorial(int n) {
+    int res = 1;
+    for (int i = 2; i <= n; ++i) {
+        res *= i;
+    }
+    return res;
+}
+</script>
+<p>Рекурсивный алгоритм лаконичнее и «математичнее», но требует <b>O(n) памяти</b>: стек рекурсии хранит локальные переменные, адрес возврата, контекст каждого вызова.</p>
+<script type="text/x-cpp">
+int fibonacci(int n) {
+    return n <= 1 ? 1 : fibonacci(n - 2) + fibonacci(n - 1);
+}
+
+int fibonacci(int n) {
+    int a = 0;
+    int b = 1; // f(0)
+    for (int i = 0; i < n; ++i) {
+        b += a;    // f(i)
+        a = b - a; // f(i - 1)
+    }
+    return b;
+}
+</script>
+<p>Рекурсивный Фибоначчи не только жрёт память, но и работает за <b>Ω(1,5ⁿ)</b>: одни и те же значения пересчитываются экспоненциально много раз. Сравни сам:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+long long calls = 0;
+int fibRec(int n) {
+    ++calls;
+    return n <= 1 ? 1 : fibRec(n - 2) + fibRec(n - 1);
+}
+int fibIter(int n) {
+    int a = 0, b = 1;
+    for (int i = 0; i < n; ++i) { b += a; a = b - a; }
+    return b;
+}
+int main() {
+    for (int n : {10, 20, 30}) {
+        calls = 0;
+        int r = fibRec(n);
+        std::cout << "n=" << n << ": " << r << " == " << fibIter(n)
+                  << ", рекурсивных вызовов: " << calls << '\n';
+    }
+}
+</script>
+<aside class="c c-imp"><ul><li>Любой рекурсивный алгоритм можно свести к итеративному.</li><li>Рекурсия, как правило, лаконичнее, но требует больше ресурсов.</li><li>Рекурсию стоит использовать, когда итеративная реализация слишком сложна и это окупает потерю производительности.</li></ul></aside>
+<aside class="c c-ub" data-l="⚠ Stack overflow"><p>Стек небольшой: обычно 8 МБ на Linux/macOS и 1 МБ на Windows. Рекурсия глубиной в миллион вызовов (или без базового случая) переполнит стек, и программа упадёт. Отсюда и название сайта Stack Overflow.</p></aside>
+<h3>Косвенная рекурсия</h3>
+<aside class="c c-def"><p><b>Косвенно рекурсивная</b> функция вызывает себя через другую функцию (или несколько).</p></aside>
+<p>Любую сущность надо объявить до использования, поэтому для таких функций сначала пишут все прототипы:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+int f(int n);
+int g(int n);
+
+int f(int n) {
+    return n <= 1 ? n : 1 + g(n);
+}
+
+int g(int n) {
+    return n <= 1 ? n : n + f(n - 1);
+}
+
+int main() {
+    std::cout << f(4) << '\n';
+}
+</script>
+<div class="qz" data-type="text" data-ans="13" data-ph="число">
+<div class="q">Чему равно <code>f(4)</code> в примере выше? Посчитай руками, потом запусти.</div>
+<div class="why">f(4) = 1 + g(4); g(4) = 4 + f(3); f(3) = 1 + g(3); g(3) = 3 + f(2); f(2) = 1 + g(2); g(2) = 2 + f(1); f(1) = 1. Обратно: g(2) = 3, f(2) = 4, g(3) = 7, f(3) = 8, g(4) = 12, f(4) = <b>13</b>.</div>
+</div>
+<aside class="c c-prod"><p>Рекурсия в проде: обход файловой системы (папка → подпапки), парсеры JSON и компиляторы (рекурсивный спуск по грамматике — так устроен парсер clang, который прямо сейчас компилирует твой код в браузере), обход DOM-дерева в браузере, быстрая сортировка.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">10.7</span> Шаблоны функций</h2>
+<p>Шаблоны — логическое продолжение перегрузки. Функция модуля, перегруженная для разных типов, внутри одинакова:</p>
+<script type="text/x-cpp">
+int abs(int x) { return x > 0 ? x : -x; }
+long abs(long x) { return x > 0 ? x : -x; }
+long long abs(long long x) { return x > 0 ? x : -x; }
+float abs(float x) { return x > 0 ? x : -x; }
+double abs(double x) { return x > 0 ? x : -x; }
+long double abs(long double x) { return x > 0 ? x : -x; }
+</script>
+<p>Хочется написать один раз — и можно:</p>
+<script type="text/x-cpp">
+template <class T>
+T abs(T x) {
+    return x > 0 ? x : -x;
+}
+</script>
+<p>Синтаксис: сначала список шаблонных параметров <code>template &lt;class T&gt;</code> или <code>template &lt;typename T&gt;</code>, затем определение (или объявление) функции. Параметров может быть несколько:</p>
+<script type="text/x-cpp">
+template <class T, class U>
+void print(T x, U y) { std::cout << x << ' ' << y; }
+</script>
+<p>Нужный тип <b>выводится автоматически</b> по аргументам (если возможно):</p>
+<script type="text/x-cpp">
+template <class T>
+T abs(T x) { return x > 0 ? x : -x; }
+
+abs(0.0);     // double abs(double)
+
+template <class T>
+T sum(T x, T y) { return x + y; }
+
+sum(1, 1);    // OK [T == int]
+sum(1, 0.0);  // CE ([T == int] или [T == double]?)
+
+template <class T>
+T getZero() { return 0; }
+
+getZero();    // CE: тип не выводится
+</script>
+<p>Если вывод не устраивает или невозможен, тип указывают явно:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+template <class T>
+T sum(T x, T y) { return x + y; }
+
+template <class T>
+T getZero() { return 0; }
+
+int main() {
+    std::cout << sum<long>(1, 1) << '\n';     // [T == long]
+    std::cout << sum<double>(1, 0.5) << '\n'; // [T == double]
+    std::cout << getZero<float>() << '\n';    // [T == float]
+}
+</script>
+<aside class="c c-imp" data-l="Вывод T при передаче по значению"><ol>
+<li>cv-квалификаторы (<code>const</code>, <code>volatile</code>) игнорируются.</li>
+<li>Ссылки отбрасываются.</li>
+<li>Массивы низводятся до указателей.</li>
+<li>Функции низводятся до указателей на функцию.</li>
+<li>Типы, соответствующие одному шаблонному T, должны совпадать (после всего выше).</li>
+</ol></aside>
+<script type="text/x-cpp">
+template <class T>
+void f(T x, T y);
+
+int x = 0;
+const int cx = 1;
+f(x, x);           // OK: [T=int]
+f(x, cx);          // OK: [T=int]
+f(cx, cx);         // OK: [T=int]
+
+int& rx = x;
+int arr[11];
+f(cx, rx);         // OK: [T=int]
+f(&rx, arr);       // OK: [T=int*]
+f(&cx, &x);        // CE: [T=const int*] или [T=int*]
+f(0, 0.0);         // CE: [T=int] или [T=double]
+f<double>(0, 0.0); // OK: [T=double] (тип не выводится, а подставляется)
+</script>
+<aside class="c c-imp" data-l="Шаблон — это не функция"><ul>
+<li>Шаблон функции — <b>НЕ функция</b>!</li>
+<li>Если шаблон ни разу не вызван, код не генерируется.</li>
+<li>При вызове создаётся только нужная версия.</li>
+<li>Генерация кода из шаблона называется <b>инстанцированием</b>.</li>
+</ul></aside>
+<script type="text/x-cpp">
+template <class T>
+void f(T x) { ... }
+
+int main() {
+    f(0);   // инстанцируется f<int>
+    f(0.0); // инстанцируется f<double>
+    f(1);   // используется уже готовая f<int>
+    return 0; // других версий f<T> нет!
+}
+</script>
+<p>Можно явно попросить инстанцировать шаблон, даже если он не используется:</p>
+<script type="text/x-cpp">
+template <class T>
+void f(T x) { ... }
+
+template void f(float); // явная инстанциация f<float>
+
+int main() {
+    f(0);   // f<int>
+    f(0.0); // f<double>
+    f(1);   // готовая f<int>
+    return 0; // существуют: f<int>, f<double>, f<float>
+}
+</script>
+<p>Это полезно в многофайловых программах, чтобы не инстанцировать одну и ту же функцию в разных единицах трансляции.</p>
+<p>Компиляция шаблонов идёт в <b>два этапа</b>:</p>
+<ol><li>При объявлении проверяется только синтаксис и то, что не зависит от параметра шаблона.</li><li>При инстанцировании — полная проверка и генерация машинного кода.</li></ol>
+<script type="text/x-cpp">
+template <class T>
+void f(T x) {
+    x = x + x;                               // этап 2 (можно ли складывать и присваивать T?)
+    g();                                     // этап 1 (не зависит от T)
+    g(x);                                    // этап 2 (зависит от T)
+    static_assert(sizeof(char) == 1);        // этап 1
+    static_assert(sizeof(T) > sizeof(char)); // этап 2
+}
+</script>
+<h3>Перегрузка шаблонов</h3>
+<ul>
+<li>Точные соответствия всегда побеждают остальные перегрузки.</li>
+<li>Если точных соответствий несколько, выигрывает то, где меньше подстановок и приведений.</li>
+<li>При прочих равных <b>обычная функция предпочтительнее шаблона</b>.</li>
+</ul>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+template <class T, class U>
+int f(T x, U y) { return 1; }
+
+template <class T>
+int f(T x, T y) { return 2; }
+
+int f(int x, int y) { return 3; }
+
+int main() {
+    std::cout << f(0, 0.0);   // 1 (точное совпадение с первым шаблоном)
+    std::cout << f(0.0, 0.0); // 2 (меньше подстановок — один T вместо двух)
+    std::cout << f(0, 0);     // 3 (обычная функция приоритетнее шаблона)
+    std::cout << f<>(0, 0);   // 2 (явно просим шаблон: второй, T = int)
+    std::cout << '\n';
+}
+</script>
+<h3>Специализация шаблона</h3>
+<script type="text/x-cpp" data-run data-ce>
+#include <cmath>
+template <class T>
+T abs(T x) { return x > 0 ? x : -x; }
+
+struct Complex {
+    double re;
+    double im;
+};
+
+int main() {
+    Complex c{3, 4}; // 3 + 4i
+    abs(c);          // CE: нет подходящего оператора > для Complex
+}
+</script>
+<p>Решение — <b>специализация</b>: реализация шаблона для конкретного набора параметров.</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+#include <cmath>
+struct Complex {
+    double re;
+    double im;
+};
+
+// общий шаблон
+template <class T>
+T abs(T x) { return x > 0 ? x : -x; }
+
+// специализация
+template <>
+Complex abs(Complex x) {
+    return {std::sqrt(x.re * x.re + x.im * x.im), 0};
+}
+
+template <class T> T GetZero() { return 0; }
+template <> Complex GetZero() { return {0, 0}; }
+
+int main() {
+    Complex c{3, 4};
+    Complex r = abs(c); // OK: [T=Complex] {5, 0}
+    std::cout << r.re << ' ' << r.im << '\n';
+    std::cout << abs(-7) << '\n';
+}
+</script>
+<h3>Нетиповые параметры шаблона</h3>
+<p>Помимо типов параметрами шаблона могут быть: целые числа, указатели, ссылки, <code>std::nullptr_t</code>, числа с плавающей точкой (C++20) и некоторые классы специального вида (C++20).</p>
+<script type="text/x-cpp">
+template <int N, int M>
+int ownSum() { return N + M; }
+
+ownSum<3, 8>(); // OK: 11
+
+int x = 1;
+ownSum<1, x>(); // CE: N и M должны быть константами времени компиляции!
+
+template <void (*FPtr)(int)>
+void call(int x) { FPtr(x); }
+
+call<f>(10); // f — функция void f(int)
+</script>
+<aside class="c c-prod"><p>Вся стандартная библиотека — шаблоны: <code>std::max</code>, <code>std::swap</code>, <code>std::sort</code>, контейнеры. Когда в 2-м модуле дойдёте до <code>std::vector&lt;int&gt;</code>, это будет ровно инстанцирование шаблона класса <code>vector</code> с <code>T = int</code>.</p></aside>
+<div class="qz" data-type="single" data-ans="1">
+<div class="q"><code>template &lt;class T&gt; T mx(T a, T b);</code> Что будет при <code>mx(3, 2.5)</code>?</div>
+<ol><li>Вернёт 3.0, T = double</li><li>Ошибка компиляции: T выводится и как int, и как double</li><li>Вернёт 3, T = int</li></ol>
+<div class="why">Оба аргумента должны дать один и тот же T. Лечится явным <code>mx&lt;double&gt;(3, 2.5)</code>.</div>
+</div>
+</section>

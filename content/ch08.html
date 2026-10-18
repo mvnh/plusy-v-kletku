@@ -1,0 +1,334 @@
+<aside class="c c-imp" data-l="Снова: операция vs оператор"><p><b>Операция (operator)</b> — символ или ключевое слово, обозначающее действие над операндами: <code>+</code>, <code>=</code>, <code>&lt;</code>, <code>++</code>. <b>Оператор (statement)</b> — законченная команда языка: <code>if</code>, <code>while</code>, <code>return</code>, <code>a = b + c;</code>. В этой главе у нас есть и то и другое для «если», и разница здесь принципиальна.</p></aside>
+
+<section>
+<h2><span class="sn">8.1</span> Условная операция ?:</h2>
+<p>В C++ есть единственная <b>тернарная</b> операция (принимает 3 аргумента) — условная <code>?:</code>.</p>
+<aside class="c c-def"><p><code>&lt;bool-expr&gt; ? &lt;expr1&gt; : &lt;expr2&gt;</code>, где</p>
+<ol><li><code>bool-expr</code> — выражение, конвертируемое в <code>bool</code>;</li><li><code>expr1</code>, <code>expr2</code> — выражения с совместимыми типами (есть общий тип, к которому оба неявно приводятся).</li></ol>
+<p>Если <code>bool-expr</code> истинно, вычисляется <code>expr1</code>, иначе — <code>expr2</code>.</p></aside>
+<aside class="c c-imp"><ul><li>Операция <b>всегда возвращает значение</b>, оператор — нет.</li><li>Операция — <b>часть выражения</b>, оператор — самостоятельная единица.</li></ul></aside>
+<p><b>Пример 1.63.</b> На вход неотрицательные целые <code>x</code> и <code>y</code>. Вывести <code>x / y</code>, если <code>y != 0</code>, иначе −1.</p>
+<script type="text/x-cpp" data-run data-stdin="17 5">
+#include <iostream>
+
+int main() {
+    int x;
+    int y;
+    std::cin >> x >> y;
+    std::cout << (y != 0 ? x / y : -1) << '\n';
+    return 0;
+}
+</script>
+<p>UB здесь нет: <code>x / y</code> вычисляется только при <code>y != 0</code>. Поставь во ввод <code>17 0</code> и проверь.</p>
+<p><b>Пример 1.64.</b> То же, но вместо −1 вывести <code>Error</code>:</p>
+<script type="text/x-cpp" data-run data-ce>
+#include <iostream>
+
+int main() {
+    int x;
+    int y;
+    std::cin >> x >> y;
+    std::cout << (y != 0 ? x / y : "Error") << '\n';
+    return 0;
+}
+</script>
+<p>Ошибка: <code>operands to '?:' have different types 'int' and 'const char*'</code>. У <code>int</code> и строкового литерала нет общего типа, нет неявного преобразования одного в другое.</p>
+<p>Результат условной операции — <b>общий тип</b>, к которому можно безопасно привести оба операнда. И он <b>не зависит от истинности условия</b>: типы разрешаются при компиляции, а не во время выполнения.</p>
+<script type="text/x-cpp">
+x > 0 ? 1 : 1.0;    // тип результата — double
+true ? 0 : 5ll;     // тип — long long
+false ? "str" : 0;  // ошибка: "str" и int несовместимы (а жаль)
+</script>
+<aside class="c c-imp" data-l="Как определяется общий тип"><ol>
+<li>Типы одинаковые — это и есть общий тип.</li>
+<li>Один операнд неявно приводится к типу другого — общий тип равен типу второго.</li>
+<li>Иначе компилятор ищет общий тип через стандартные преобразования.</li>
+<li>Типы несовместимы (<code>int</code> и <code>const char*</code>) — ошибка компиляции (CE).</li>
+</ol></aside>
+<div class="qz" data-type="out" data-ans="1.5|1.5&#10;">
+<div class="q">Что выведет программа?</div>
+<script type="text/x-cpp">
+#include <iostream>
+int main() {
+    int k = 3;
+    std::cout << (k > 0 ? k / 2.0 : 0) << '\n';
+}
+</script>
+<div class="why">Общий тип <code>double</code> и <code>int</code> — <code>double</code>. Условие истинно: 3 / 2.0 = <b>1.5</b>.</div>
+</div>
+<div class="qz" data-type="out" data-ans="1">
+<div class="q">А так? Условие ложно, но тип у результата всё равно общий…</div>
+<script type="text/x-cpp">
+#include <iostream>
+int main() {
+    std::cout << (false ? 0.5 : 1) << '\n';
+}
+</script>
+<div class="why">Выбирается <code>1</code>, но приводится к общему типу <code>double</code>. Печатается <b>1</b>: <code>cout</code> не показывает «.0» у целых значений <code>double</code>. Подвох в том, что тип всё-таки <code>double</code>, а не <code>int</code>.</div>
+</div>
+<aside class="c c-ub" data-l="Упражнение 8.1"><p>Вспомни про запятую и про то, что будет у <code>x++ + ++x</code> при <code>x = 0</code>. Намёк: порядок вычисления операндов <code>+</code> не гарантирован, и два изменения одной переменной в одном выражении без точки следования — UB.</p></aside>
+<p>А вот условная операция <b>гарантирует порядок</b>: 1) сначала вычисляется <code>bool-expr</code>; 2) затем <b>только один</b> из <code>expr1</code>/<code>expr2</code>. Это логично и позволяет избежать UB в примерах вроде <code>y != 0 ? x / y : -1</code>.</p>
+
+<h3>Категория значения результата</h3>
+<p>Условная операция возвращает <b>lvalue</b>, если оба операнда — lvalue одного типа (с точностью до cv-квалификаторов). Тогда результат ссылается на первый или второй операнд:</p>
+<script type="text/x-cpp" data-run="wrap">
+int y = 1;
+int a = 1, b = 2;
+(y != 0 ? a : b) = 42; // OK: результат — lvalue, можно присвоить
+std::cout << a << ' ' << b << '\n'; // "42 2", если y != 0
+</script>
+<p>Если хотя бы один операнд rvalue или типы разные, результат — rvalue, присвоить нельзя:</p>
+<script type="text/x-cpp" data-run="wrap" data-ce>
+int y = 1, c = 3;
+(y != 0 ? c : 10) = 5; // ОШИБКА: 10 — prvalue, результат prvalue
+</script>
+<aside class="c c-imp" data-l="Правила категории результата cond ? e1 : e2"><ul>
+<li>Оба — lvalue одного типа (с точностью до const/volatile) → lvalue того же типа.</li>
+<li>Категории различаются (lvalue и rvalue) → rvalue.</li>
+<li>Категории совпадают, типы отличаются только cv-квалификаторами (<code>int</code> и <code>const int</code>) → категория сохраняется, тип объединяется (<code>const int</code>).</li>
+<li>Типы разные (даже после неявных преобразований) → prvalue общего типа.</li>
+</ul></aside>
+<aside class="c c-hist" data-l="Для любопытных: xvalue"><p>Стандарт делит rvalue на <b>prvalue</b> (pure rvalue: литералы, результаты функций, возвращающих по значению) и <b>xvalue</b> (expiring value: объекты, которые вот-вот уничтожатся и из которых можно «переместить» данные, например результат <code>std::move</code>). Пока для простоты используем только lvalue и rvalue, где rvalue — всё, что не lvalue.</p></aside>
+<script type="text/x-cpp">
+int x = 10, y = 20;
+
+// 1. Оба lvalue одного типа -> lvalue
+(true ? x : y) = 30;   // OK
+
+// 2. Один prvalue -> результат rvalue
+(false ? x : 42) = 50; // ОШИБКА: нельзя присвоить prvalue
+</script>
+</section>
+
+<section>
+<h2><span class="sn">8.2</span> Условный оператор if</h2>
+<aside class="c c-def"><p><code>if ([init] &lt;condition&gt;) &lt;statement-true&gt; [else &lt;statement-false&gt;]</code></p>
+<ul>
+<li><b>condition</b> — выражение, конвертируемое в <code>bool</code>;</li>
+<li><b>statement-true</b> — выполняется, если condition истинно;</li>
+<li><b>statement-false</b> — выполняется, если ложно;</li>
+<li><b>init</b> — выражение или объявление (C++17). Объявленная сущность живёт в области условного оператора. Может отсутствовать.</li>
+</ul>
+<p>Ветку <code>else</code> можно опустить, условные операторы можно вкладывать друг в друга.</p></aside>
+<script type="text/x-cpp">
+if (x > 0) std::cout << x << '\n';
+
+if (x != 0 && y / x > 5) return y / x - 5; // ленивое && спасает от деления на 0
+
+if (x); // пустой оператор: законно и бесполезно
+</script>
+<script type="text/x-cpp">
+if (int x = 0) { // false, так как x = 0
+    // этот блок НЕ выполнится
+    int y;
+    std::cin >> y;
+    std::cout << y / x << '\n'; // ЭТО НИКОГДА НЕ ВЫПОЛНИТСЯ
+} // x и y здесь не существуют
+</script>
+<p>Фигурные скобки:</p>
+<ul><li>можно не ставить, если выполняется один оператор;</li><li>рекомендуется ставить всегда — читаемость и защита от ошибок;</li><li>создают новую область видимости.</li></ul>
+<aside class="c c-imp"><p>Если объявляешь переменную в <code>condition</code>, её <b>обязательно</b> инициализировать:</p>
+<script type="text/x-cpp">
+if (int x) std::cin >> x; // error: x = ?
+</script></aside>
+<h3>if с инициализацией (init)</h3>
+<script type="text/x-cpp">
+if (const int x = y + z; x != 5) std::cout << x << '\n';
+
+if (int x; x = 0) { // false: результат присваивания равен 0
+    int y;
+    std::cin >> y;
+    std::cout << y / x << '\n';
+} // x и y больше недоступны
+
+// init может быть любым выражением, не только объявлением
+if (std::cin >> x; x != 0 && y / x > 5) return y / x - 5;
+</script>
+<aside class="c c-prod"><p>В продакшене <code>if</code> с init живёт рядом с поиском: <code>if (auto it = cache.find(key); it != cache.end()) { … }</code> — итератор не «утекает» за пределы проверки. Аккуратно и без мусорных переменных в функции.</p></aside>
+<h3>else и вложенные условия</h3>
+<script type="text/x-cpp" data-run data-stdin="-3 4">
+#include <iostream>
+int main() {
+    int x, y;
+    std::cin >> x >> y;
+    if (x != 0) std::cout << y / x << '\n';
+    else std::cout << "Error\n";
+
+    if (x >= 0 && y >= 0) std::cout << "Positives\n";
+    else {
+        int z = x * y;
+        std::cout << (z > 0 ? "Negatives\n" : "Different\n");
+    }
+    return 0;
+}
+</script>
+<p>Максимум из трёх чисел вложенными <code>if</code>:</p>
+<script type="text/x-cpp" data-run data-stdin="4 9 7">
+#include <iostream>
+int main() {
+    int x, y, z;
+    std::cin >> x >> y >> z;
+    if (x >= y) {
+        if (x >= z) {
+            std::cout << x << '\n';
+        } else {
+            std::cout << z << '\n';
+        }
+    } else if (y >= z) std::cout << y << '\n';
+    else std::cout << z << '\n';
+    return 0;
+}
+</script>
+<aside class="c c-imp"><p><code>else</code> относится к <b>ближайшему неспаренному <code>if</code></b>.</p></aside>
+<script type="text/x-cpp">
+if (x >= y)
+    if (x > 0)
+        if (y > 0)
+            std::cout << "Both positive\n";
+        else
+            std::cout << "x <= 0\n"; // на самом деле относится к if (y > 0)!
+</script>
+<aside class="c c-ub" data-l="⚠ Висячий else (dangling else)"><ul>
+<li>Отступы в C++ <b>не влияют</b> на выполнение (в отличие от Python).</li>
+<li>Без <code>{}</code> после <code>if</code>/<code>else</code> условие относится только к одному ближайшему оператору.</li>
+<li><b>Всегда</b> ставь скобки!</li>
+</ul>
+<script type="text/x-cpp">
+// ОПАСНО: else относится только к внутреннему if!
+if (x > 0)
+if (y > 0)
+std::cout << "Both positive\n";
+else // этот else относится к if (y > 0), а не к if (x > 0)!
+std::cout << "x > 0, но y <= 0\n";
+</script></aside>
+<div class="qz" data-type="out" data-ans="B">
+<div class="q">Что выведет программа?</div>
+<script type="text/x-cpp">
+#include <iostream>
+int main() {
+    int x = 5, y = -1;
+    if (x > 0)
+        if (y > 0)
+            std::cout << "A";
+    else
+        std::cout << "B";
+}
+</script>
+<div class="why">Несмотря на отступ, <code>else</code> принадлежит ближайшему <code>if (y &gt; 0)</code>. <code>x &gt; 0</code> — входим, <code>y &gt; 0</code> ложно — срабатывает <code>else</code>: <b>B</b>.</div>
+</div>
+<aside class="c c-imp"><p>В C++ нет ключевого слова <code>else if</code> или <code>elif</code>. <code>else if</code> — это просто <code>else</code>, за которым сразу идёт другой <code>if</code>:</p>
+<script type="text/x-cpp">
+if (x > 0) {
+    // ...
+} else if (x == 0) { // а на самом деле: else { if (x == 0) { ... } }
+    // ...
+} else {
+    // ...
+}
+</script></aside>
+<aside class="c c-prod"><p>Apple, 2014, баг «goto fail» в проверке SSL-сертификатов: строка <code>goto fail;</code> случайно продублировалась после <code>if</code> без фигурных скобок. Вторая копия выполнялась <i>всегда</i>, и проверка подписи пропускалась. Миллионы iPhone и Mac принимали поддельные сертификаты. С фигурными скобками баг был бы невозможен.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">8.3</span> Оператор switch</h2>
+<aside class="c c-def"><p><code>switch ([init] &lt;condition&gt;) statement</code> — выбор ветки по значению выражения.</p>
+<ul>
+<li><b>init</b> — выражение или объявление, как у <code>if</code>;</li>
+<li><b>condition</b> — выражение <b>целого или перечислимого</b> типа, либо объявление одной такой переменной с обязательной инициализацией;</li>
+<li><b>statement</b> — произвольный оператор, обычно составной с метками <code>case</code>, <code>default</code> и операторами <code>break</code>.</li>
+</ul></aside>
+<script type="text/x-cpp" data-run data-stdin="1">
+#include <iostream>
+int main() {
+    int x;
+    std::cin >> x;
+    switch (x) {
+        case 0: std::cout << "Zero\n"; break;
+        case 1: std::cout << "One\n"; break;
+        default: std::cout << "Other\n";
+    }
+    return 0;
+}
+</script>
+<p>Метки: <code>case &lt;const-expr&gt;: &lt;statements&gt;</code> и <code>default: &lt;statements&gt;</code>. <code>const-expr</code> — константное выражение, вычисляемое при компиляции, целого или перечислимого типа. Значения в <code>case</code> должны быть уникальными.</p>
+<p>После вычисления условия ищется подходящая метка, и управление передаётся на первую инструкцию после неё. Нет подходящей — переход к <code>default</code>.</p>
+<aside class="c c-imp"><p>После перехода к метке выполняются <b>все операторы ниже</b>, даже под другими метками. Чтобы остановиться, нужен <code>break;</code>.</p></aside>
+<p>Пройди по шагам: <code>x = 1</code>, а <code>break</code> после «One» забыли.</p>
+<div class="trace" data-title="switch без break: проваливание">
+<script type="text/x-cpp">
+int x = 1;
+switch (x) {
+    case 0: std::cout << "Zero\n"; break;
+    case 1: std::cout << "One\n";
+    // break забыли!
+    default: std::cout << "Other\n";
+}
+</script>
+<script type="application/json">{"steps":[
+{"l":1,"n":"<code>x = 1</code>.","st":[{"f":"main()","v":[["x","int","1"]]}],"out":""},
+{"l":2,"n":"<code>switch</code> вычисляет <code>x</code> = 1 и <b>прыгает</b> на метку <code>case 1</code>, как <code>goto</code>. <code>case 0</code> просто пропускается.","st":[{"f":"main()","v":[["x","int","1"]]}],"out":""},
+{"l":4,"n":"Выполняется код после метки <code>case 1</code>: вывод «One».","st":[{"f":"main()","v":[["x","int","1"]]}],"out":"One\n"},
+{"l":6,"n":"<code>break</code> нет, поэтому управление «проваливается» дальше, через метку <code>default</code>. Метки — это просто точки входа, они не останавливают выполнение.","st":[{"f":"main()","v":[["x","int","1"]]}],"out":"One\nOther\n"},
+{"l":7,"n":"Конец <code>switch</code>. Итог: «One» и «Other». Ровно пример 1.81 из конспекта.","st":[{"f":"main()","v":[["x","int","1"]]}],"out":"One\nOther\n"}
+]}</script>
+</div>
+<aside class="c c-imp"><p>Без <code>break</code> выполнение продолжится в следующем <code>case</code>. Иногда это полезно (одинаковая обработка нескольких значений), но чаще — ошибка.</p></aside>
+<script type="text/x-cpp">
+int x = 0;
+const int y = 2;
+switch (x * y) {
+    case 2 * 2: ... // OK
+    case y: ...     // OK: y — константа времени компиляции
+    case x * 2: ... // CE: не вычисляется при компиляции (x не constexpr)
+}
+</script>
+<aside class="c c-imp"><p>Условием может быть только <b>целочисленный или перечислимый</b> тип. <code>double</code>, строки — нельзя:</p>
+<script type="text/x-cpp">
+double x = ...;
+switch (x) { // CE
+    ...
+}
+</script></aside>
+<p>С инициализацией:</p>
+<script type="text/x-cpp" data-run data-stdin="-1">
+#include <iostream>
+int main() {
+    int x;
+    switch (std::cin >> x; x * x) {
+        case 0:
+        case 1: std::cout << "x * x <= 1\n"; break;
+        default: std::cout << "x * x >= 4\n";
+    }
+    return 0;
+}
+</script>
+<aside class="c c-imp" data-l="[[fallthrough]]"><p>Отсутствие <code>break</code> — чаще ошибка, чем замысел. Поэтому компиляторы предупреждают (а с <code>-Werror</code> — ошибка), если <code>case</code> без <code>break</code> проваливается в следующий:</p>
+<p><code>error: this statement may fall through [-Werror=implicit-fallthrough=]</code></p>
+<p>Чтобы сказать «я так и хотел», есть атрибут <code>[[fallthrough]]</code>:</p>
+<script type="text/x-cpp">
+switch (std::cin >> x; x * x) {
+    case 0: [[fallthrough]];
+    case 1: std::cout << "x * x <= 1\n"; break;
+    default: std::cout << "x * x >= 4\n";
+}
+</script></aside>
+<div class="qz" data-type="out" data-ans="Two&#10;Three&#10;Default">
+<div class="q">Что выведет программа?</div>
+<script type="text/x-cpp">
+#include <iostream>
+int main() {
+    int n = 2;
+    switch (n) {
+        case 1: std::cout << "One\n";
+        case 2: std::cout << "Two\n";
+        case 3: std::cout << "Three\n";
+        default: std::cout << "Default\n";
+        case 4: break;
+        case 5: std::cout << "Five\n";
+    }
+}
+</script>
+<div class="why">Прыжок на <code>case 2</code>, потом проваливание через <code>case 3</code> и <code>default</code> до <code>break</code> под <code>case 4</code>. <code>default</code> не обязан быть последним.</div>
+</div>
+<aside class="c c-prod"><p>Где <code>switch</code> царствует: интерпретаторы и эмуляторы (большой <code>switch</code> по коду инструкции байт-кода), конечные автоматы в сетевых протоколах и парсерах, обработка нажатых клавиш в играх. Проваливание иногда используют намеренно: знаменитый «Duff's device» вручную разворачивает цикл через <code>switch</code> с проваливаниями.</p></aside>
+</section>

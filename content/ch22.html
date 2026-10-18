@@ -1,0 +1,317 @@
+<section>
+<h2><span class="sn">22.1</span> Класс</h2>
+<aside class="c c-def"><p><b>Класс</b> — описание некоторого концепта предметной области в виде набора полей и методов для работы с ними (описание нового типа данных).</p></aside>
+<script type="text/x-cpp">
+class Stack {
+private:
+    inline static const size_t kMaxSize = 100;
+    size_t size_ = 0;
+    int buffer_[kMaxSize];
+
+public:
+    // объявления методов:
+    void Push(int value);
+    void Pop();
+    int Top();
+    void Clear();
+};
+</script>
+<aside class="c c-tip" data-l="Что такое стек"><p>Стек — «стопка тарелок»: кладём сверху (<code>Push</code>), снимаем сверху (<code>Pop</code>), смотрим верхнюю (<code>Top</code>). Последним пришёл — первым ушёл (LIFO). Тот самый стек вызовов из главы 10 устроен ровно так.</p></aside>
+</section>
+<section>
+<h2><span class="sn">22.2</span> Объект</h2>
+<aside class="c c-def"><p><b>Объект</b> — экземпляр класса.</p></aside>
+<script type="text/x-cpp">
+Stack stack;                       // создание объекта
+std::cout << stack.size_ << '\n';  // Ошибка! size_ — private
+
+stack.Push(1);
+std::cout << stack.Top() << '\n';  // 1
+</script>
+<p>Класс — чертёж, объект — дом, построенный по чертежу. Домов можно построить сколько угодно, у каждого свои стены (поля), но планировка (методы) одна.</p>
+</section>
+<section>
+<h2><span class="sn">22.3</span> Модификаторы доступа</h2>
+<script type="text/x-cpp">
+class Stack {
+    // ... (по умолчанию private у классов и public у структур)
+private:
+    // ...
+public:
+    // ...
+};
+</script>
+<ul>
+<li><code>public</code> — любой внешний код имеет доступ к полям и методам.</li>
+<li><code>private</code> — доступ только у методов самого класса (и у друзей класса, глава 26).</li>
+<li>Модификаторы можно ставить в любом порядке и количестве.</li>
+<li>Модификатор действует от точки объявления до следующего модификатора (или конца класса).</li>
+<li>В <code>struct</code> по умолчанию <code>public</code>.</li>
+</ul>
+<script type="text/x-cpp">
+class S {
+public:
+    int x;
+    void g();
+    void h(int);
+private:
+    int y;
+    void f();
+    void h(double);
+};
+
+int main() {
+    S s;
+    s.x = 0;   // OK
+    s.y = 1;   // CE: y — private
+    s.f();     // CE: f — private
+    s.g();     // OK
+    s.h(0);    // OK (вызов h(int))
+    s.h(0.0);  // CE: h(double) — private
+    return 0;
+}
+</script>
+<aside class="c c-ub" data-l="⚠ Подвох с s.h(0.0)"><p>Обрати внимание: сначала выполняется <b>разрешение перегрузки</b> (выбрана <code>h(double)</code> как точное совпадение), и только потом — <b>проверка доступа</b>. Компилятор не станет «обходить» приватную функцию и вызывать <code>h(int)</code> с преобразованием. Будет ошибка.</p></aside>
+<div class="qz" data-type="multi" data-ans="0,3">
+<div class="q">Какие строки скомпилируются для класса <code>S</code> выше?</div>
+<ol><li><code>s.h(5);</code></li><li><code>s.h(5.0);</code></li><li><code>s.y = 3;</code></li><li><code>s.g();</code></li></ol>
+<div class="why"><code>h(int)</code> и <code>g()</code> — public. <code>h(double)</code> выигрывает перегрузку для <code>5.0</code>, но она private → CE. <code>y</code> — private.</div>
+</div>
+</section>
+<section>
+<h2><span class="sn">22.4</span> Ключевое слово class</h2>
+<ul>
+<li>Для нового типа вместо <code>struct</code> можно писать <code>class</code>.</li>
+<li>Классы в C++ полностью эквивалентны структурам, кроме двух нюансов:
+<ol><li>в классах модификатор по умолчанию — <code>private</code>, в структурах — <code>public</code>;</li><li>классы по умолчанию наследуют приватно, структуры — публично (наследование будет позже).</li></ol></li>
+<li>Как правило, предпочитают <code>class</code>. Структуры обычно пишут без методов, только с открытыми полями базовых типов (POD-типы).</li>
+</ul>
+</section>
+<section>
+<h2><span class="sn">22.5</span> Определение методов вне класса</h2>
+<p>Методы можно определять вне класса (обычно в отдельном <code>.cpp</code>), но объявить их внутри класса всё равно нужно:</p>
+<script type="text/x-cpp">
+class S {
+    int x = 0;
+    void f();
+};
+
+void S::f() {     // S:: — «это f из класса S»
+    std::cout << x;
+}
+</script>
+<p>Методы, определённые <b>внутри</b> класса, автоматически становятся <code>inline</code>:</p>
+<script type="text/x-cpp">
+class S {
+    int x = 0;
+    void f() { std::cout << x; } // inline
+};
+</script>
+</section>
+<section>
+<h2><span class="sn">22.6</span> Константные методы</h2>
+<script type="text/x-cpp">
+class Stack {
+private:
+    inline static const size_t kMaxSize = 100;
+    size_t size_ = 0;
+    int buffer_[kMaxSize];
+
+public:
+    void Push(int value) { buffer_[size_++] = value; }
+    void Pop() { --size_; }
+    int Top() { return buffer_[size_ - 1]; }
+    void Clear() { size_ = 0; }
+
+    size_t Size() { return size_; }
+    bool Empty() { return size_ == 0; }
+};
+</script>
+<p><code>Size()</code> ничего не меняет, но у константного объекта вызвать его нельзя:</p>
+<script type="text/x-cpp">
+const Stack cs;
+cs.Size(); // Ошибка компиляции!
+// error: passing 'const Stack' as 'this' argument discards qualifiers
+</script>
+<p>Компилятору нужно объяснить, что метод ничего не меняет: после списка параметров пишется <code>const</code>:</p>
+<script type="text/x-cpp">
+size_t Stack::Size() const { // <-- !
+    return size_;
+}
+
+cs.Size(); // OK
+</script>
+<p>Это не только подсказка: в константном методе <b>нельзя изменять поля</b>:</p>
+<script type="text/x-cpp">
+size_t Stack::Size() const {
+    return ++size_; // Ошибка компиляции!
+}
+// error: increment of member 'Stack::size_' in read-only object
+</script>
+<h3>Правила константных методов</h3>
+<ul>
+<li>Из константного метода можно вызывать <b>только константные</b> методы (неконстантные могут изменить поля).
+<script type="text/x-cpp">
+size_t Stack::Size() const {
+    Pop();          // Ошибка: вызов неконстантного метода
+    return size_;
+}
+
+int Stack::Top() const {
+    return buffer_[Size() - 1]; // OK: Size() — константный
+}
+</script></li>
+<li>Константность — часть сигнатуры, поэтому по ней можно <b>перегружать</b>:
+<script type="text/x-cpp" data-run>
+#include <iostream>
+class Stack {
+    inline static const size_t kMaxSize = 100;
+    size_t size_ = 0;
+    int buffer_[kMaxSize];
+public:
+    void Push(int value) { buffer_[size_++] = value; }
+    int Top() const { std::cout << "[const] "; return buffer_[size_ - 1]; }  // для константных стеков
+    int& Top() { std::cout << "[non-const] "; return buffer_[size_ - 1]; }   // для неконстантных
+};
+int main() {
+    Stack a;
+    a.Push(5);
+    const auto& cref = a;
+
+    a.Top() = 1;        // OK: неконстантная версия возвращает int&
+    // cref.Top() = 1;  // Ошибка: константная версия возвращает int, а не int&
+    std::cout << cref.Top() << '\n';
+}
+</script></li>
+</ul>
+<aside class="c c-prod"><p>Правило хорошего кода (в Google Style Guide, у Скотта Мейерса и в любом ревью): всё, что не меняет объект, помечай <code>const</code>. Это документация, которую проверяет компилятор, и без неё твой класс нельзя использовать через <code>const&amp;</code> — то есть почти нигде.</p></aside>
+</section>
+<section>
+<h2><span class="sn">22.7</span> Статические методы</h2>
+<script type="text/x-cpp">
+class S {
+public:
+    int x;
+    static int y;
+
+    void f();
+    static void g();
+};
+</script>
+<ul>
+<li>Принадлежат не объекту, а классу в целом.</li>
+<li>Вызываются через объект или через имя класса: <code>S::y</code>, <code>S::g()</code>.</li>
+<li>Работают <b>только со статическими полями</b>: иначе непонятно, чьё это поле.</li>
+</ul>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+class S {
+public:
+    int x;
+    static int y;
+
+    void f() {
+        x += 1; // OK
+        y += 1; // OK
+    }
+
+    static void g() {
+        // x += 1; // Ошибка: статический метод не видит нестатическое поле
+        y += 1;    // OK
+    }
+};
+
+int S::y = 0; // обязательное определение статического поля
+
+int main() {
+    S a, b;
+    a.x = 0; b.x = 1;  // a.x = 0, b.x = 1
+    a.y = 0; b.y = 1;  // a.y = 1, b.y = 1 (поле общее)
+    S::y = 11;         // теперь a.y = 11, b.y = 11
+    a.f(); b.f();      // a.x = 1, b.x = 2; y = 13
+    a.g(); b.g();      // y = 15
+    // S::f();         // Ошибка: нестатический метод через класс
+    S::g();            // OK, y = 16
+    std::cout << a.x << ' ' << b.x << ' ' << S::y << '\n'; // 1 2 16
+}
+</script>
+<aside class="c c-imp"><p>Константных статических методов <b>не существует</b>: <code>const</code> у метода относится к объекту <code>this</code>, а у статического метода его нет.</p></aside>
+</section>
+<section>
+<h2><span class="sn">22.8</span> Итоговый класс стека</h2>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+class Stack {
+private:
+    inline static const size_t kMaxSize = 100;
+    size_t size_ = 0;
+    int buffer_[kMaxSize];
+
+public:
+    void Push(int value) { buffer_[size_++] = value; }
+    void Pop() { --size_; }
+    int& Top() { return buffer_[size_ - 1]; }
+    void Clear() { size_ = 0; }
+
+    int Top() const { return buffer_[size_ - 1]; }
+    size_t Size() const { return size_; }
+    bool Empty() const { return size_ == 0; }
+
+    static size_t MaxSize() { return kMaxSize; }
+};
+
+int main() {
+    Stack s;
+    for (int i = 1; i <= 5; ++i) s.Push(i * i);
+    s.Top() += 100;
+    while (!s.Empty()) {
+        std::cout << s.Top() << ' ';
+        s.Pop();
+    }
+    std::cout << "\nmax = " << Stack::MaxSize() << '\n';
+}
+</script>
+<aside class="c c-tip"><p>В конспекте в итоговом классе <code>size_t size_;</code> без инициализатора — тогда у нового стека размер будет мусором. Здесь стоит <code>= 0</code>; в главе 23 то же решается конструктором.</p></aside>
+</section>
+<section>
+<h2><span class="sn">22.9</span> Логическая и физическая константность</h2>
+<ul>
+<li>Объект <b>логически константен</b>, если с точки зрения пользователя его состояние не меняется (нельзя отличить «до» и «после»).</li>
+<li>Объект <b>физически константен</b>, если не изменился ни один бит его внутреннего представления.</li>
+</ul>
+<p>Пример: для отладки объект считает число вызовов метода. Физически он меняется (счётчик), логически — нет (пользователь этого не видит).</p>
+<h3>mutable</h3>
+<script type="text/x-cpp">
+class C {
+    size_t counter = 0;
+public:
+    int GetZero() {
+        ++counter;
+        return 0;
+    }
+};
+
+const C c;
+c.GetZero(); // Ошибка компиляции
+</script>
+<p><code>GetZero()</code> не может быть константным: он нарушает физическую константность. Но можно сказать компилятору, что изменение поля не влияет на логическую константность, пометив поле <code>mutable</code>. Такие поля можно менять даже в константных методах:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+class C {
+    mutable size_t counter = 0;
+public:
+    int GetZero() const {
+        ++counter; // OK, поле mutable
+        return 0;
+    }
+    size_t Calls() const { return counter; }
+};
+int main() {
+    const C c;
+    c.GetZero();
+    c.GetZero();
+    std::cout << c.Calls() << '\n'; // 2
+}
+</script>
+<aside class="c c-prod"><p>Где <code>mutable</code> честно нужен: кэш внутри объекта (ленивая загрузка результата в константном методе), счётчики обращений, мьютекс для потокобезопасности константных методов.</p></aside>
+</section>

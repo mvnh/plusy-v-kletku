@@ -1,0 +1,309 @@
+<section>
+<h2><span class="sn">23.0</span> Что такое конструктор</h2>
+<aside class="c c-def"><p><b>Конструктор</b> — особый метод класса, который вызывается при создании объекта.</p>
+<ul><li>Не имеет возвращаемого значения.</li><li>Его имя совпадает с именем класса.</li><li>Вызывается неявно при создании объекта.</li></ul></aside>
+<script type="text/x-cpp">
+class Stack {
+public:
+    Stack() {                     // конструктор
+        buffer_ = new int[kCapacity];
+        size_ = 0;
+    }
+    // ... (остальные методы)
+};
+
+Stack stack; // вызывается конструктор Stack::Stack()
+</script>
+<p>Виды конструкторов:</p>
+<ul><li>параметрический;</li><li>преобразования;</li><li>по умолчанию;</li><li>копирования;</li><li>перемещения (будет позже).</li></ul>
+</section>
+
+<section>
+<h2><span class="sn">23.1</span> Параметрический конструктор</h2>
+<aside class="c c-def"><p><b>Параметрический конструктор</b> — конструктор, который можно вызвать с несколькими аргументами (больше одного).</p></aside>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+class Stack {
+    inline static const size_t kCapacity = 100;
+    int* buffer_;
+    size_t size_;
+public:
+    Stack(size_t size, int value) { // стек из size элементов value
+        buffer_ = new int[kCapacity];
+        size_ = size;
+        for (size_t i = 0; i < size_; ++i) {
+            buffer_[i] = value;
+        }
+    }
+    ~Stack() { delete[] buffer_; }  // деструктор — в главе 24
+    size_t Size() const { return size_; }
+    int Top() const { return buffer_[size_ - 1]; }
+};
+
+int main() {
+    Stack stack(10, 1); // или Stack stack = Stack(10, 1); или auto stack = Stack(10, 1);
+    std::cout << stack.Size() << ' ' << stack.Top() << '\n'; // 10 1
+}
+</script>
+</section>
+
+<section>
+<h2><span class="sn">23.2</span> Списки инициализации</h2>
+<p>К моменту выполнения <b>тела</b> конструктора все поля уже должны быть инициализированы. Присваивание в теле — это уже не инициализация. Особенно важно для полей-ссылок и констант: их нельзя «присвоить», их можно только инициализировать.</p>
+<p>Нужная конструкция — <b>список инициализации</b>:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+class B {
+    const int x_;
+    double& y_;
+public:
+    B(int x, double& y) : x_(x), y_(y) { // список инициализации
+        // тело: работаем с уже инициализированными данными
+    }
+    void Show() const { std::cout << x_ << ' ' << y_ << '\n'; }
+};
+
+int main() {
+    double z = 0.5;
+    B b(7, z); // OK
+    z = 2.5;   // b.y_ — ссылка на z, увидит изменение
+    b.Show();  // 7 2.5
+}
+</script>
+<aside class="c c-ub" data-l="⚠ Порядок инициализации"><p>Порядок инициализации полей определяется <b>порядком их объявления в классе</b>, а не порядком в списке инициализации. И даже если ты не написал список инициализации, он всё равно есть (неявный).</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+struct Bad {
+    int a;
+    int b;
+    Bad(int x) : b(x), a(b + 1) {} // кажется, что b раньше… но a объявлено первым!
+};
+int main() {
+    Bad v(10);
+    std::cout << v.a << ' ' << v.b << '\n'; // a инициализировано из ещё мусорного b — UB
+}
+</script>
+<p>clang и g++ предупреждают об этом (<code>-Wreorder</code>). Пиши список в том же порядке, что и поля.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">23.3</span> Конструктор преобразования</h2>
+<aside class="c c-def"><p><b>Конструктор преобразования</b> — конструктор, который может принимать ровно 1 аргумент. Используется для неявных (и явных) преобразований. (C++11 расширил это понятие, но это уже другая история.)</p></aside>
+<script type="text/x-cpp">
+Stack::Stack(size_t size) : buffer_(new int[kCapacity]{}), size_(size) {}
+
+Stack stack(1);    // стек размера 1
+Stack another = 3; // стек размера 3 (неявное преобразование!)
+
+void f(Stack arg);
+f(stack); // OK
+f(10);    // OK <=> f(Stack(10))
+</script>
+<h3>explicit</h3>
+<p>Неявное преобразование бывает нежелательным: <code>f(10)</code> внезапно создаёт стек из 10 элементов. Чтобы запретить неявные (implicit) преобразования и разрешить только явные (explicit):</p>
+<script type="text/x-cpp" data-run data-ce>
+#include <cstddef>
+struct Stack {
+    explicit Stack(size_t size) {}
+};
+void f(Stack arg) {}
+
+int main() {
+    Stack stack(1);    // OK: явное
+    Stack another = 3; // Ошибка: неявное преобразование
+    f(stack);          // OK: преобразование не нужно
+    f(10);             // Ошибка: неявное преобразование
+}
+</script>
+<aside class="c c-prod"><p>Правило из многих гайдлайнов (C++ Core Guidelines C.46): конструкторы с одним аргументом по умолчанию делай <code>explicit</code>. Иначе где-нибудь функция <code>sendMoney(Account to)</code> молча примет номер счёта числом <code>sendMoney(42)</code>, и никто не заметит.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">23.4</span> Конструктор по умолчанию</h2>
+<aside class="c c-def"><p><b>Конструктор по умолчанию</b> — конструктор, который можно вызвать без аргументов.</p></aside>
+<script type="text/x-cpp">
+Stack::Stack() : buffer_(new int[kCapacity]), size_(0) {}
+
+Stack stack;          // или auto stack = Stack();
+Stack other();        // Ошибка: компилятор видит это как ОБЪЯВЛЕНИЕ ФУНКЦИИ!
+</script>
+<aside class="c c-meme"><p><code>Stack other();</code> — это функция <code>other</code>, которая ничего не принимает и возвращает <code>Stack</code>. Эту ловушку называют «most vexing parse», «самый досадный разбор». Фигурные скобки <code>Stack other{};</code> её обходят.</p></aside>
+<p>Если ты <b>не объявил ни одного</b> конструктора, компилятор создаст свой конструктор по умолчанию: поля-классы инициализирует их конструкторами по умолчанию, а для полей примитивных типов ничего не делает. Если объявил <b>хотя бы один</b> конструктор — неявного конструктора по умолчанию не будет.</p>
+<p>Сгенерированный конструктор эквивалентен конструктору с пустым телом:</p>
+<script type="text/x-cpp">
+class A { ... };
+
+class B {
+public:
+    int x;
+    A a;
+    B() {} // <=> B() : a() {} — x остаётся неинициализированным
+};
+</script>
+<aside class="c c-imp"><p>Список инициализации выполняется <b>в любом случае</b>. Компилятор может и отказаться генерировать конструктор по умолчанию, если не понимает, как это сделать:</p>
+<script type="text/x-cpp">
+struct A {
+private:
+    A() {}
+};
+
+struct B {
+    A a;         // проблема: приватный конструктор A()
+    const int b; // проблема: как инициализировать константу?
+    int& c;      // проблема: как инициализировать ссылку?
+};
+
+B b; // Ошибка компиляции
+</script></aside>
+<h3>= default</h3>
+<p>Если в классе уже есть какой-то конструктор, а писать конструктор по умолчанию лень, можно явно попросить компилятор сгенерировать его. Это эквивалентно конструктору с пустым телом:</p>
+<script type="text/x-cpp">
+struct B {
+    B(int x, int y) {}
+    B() = default; // эквивалентно B() {}
+};
+</script>
+<div class="qz" data-type="single" data-ans="2">
+<div class="q"><code>struct P { P(int v) {} };</code> Что будет при <code>P p;</code>?</div>
+<ol><li>Вызовется сгенерированный конструктор по умолчанию</li><li>Вызовется <code>P(int)</code> с v = 0</li><li>Ошибка компиляции: раз объявлен свой конструктор, конструктора по умолчанию нет</li></ol>
+<div class="why">Объявил хотя бы один конструктор — неявный конструктор по умолчанию не создаётся. Лечится <code>P() = default;</code> или значением по умолчанию у параметра.</div>
+</div>
+</section>
+
+<section>
+<h2><span class="sn">23.5</span> Конструктор копирования</h2>
+<aside class="c c-def"><p><b>Конструктор копирования</b> создаёт объект копированием другого объекта того же типа. Единственный аргумент — объект того же типа.</p></aside>
+<p>Наивная передача по значению обречена:</p>
+<script type="text/x-cpp">
+Stack::Stack(Stack s) : buffer_(new int[kCapacity]), size_(s.size_) {
+    for (size_t i = 0; i < size_; ++i) {
+        buffer_[i] = s.buffer_[i];
+    }
+}
+
+Stack a;
+Stack b(a); // бесконечная рекурсия!
+</script>
+<aside class="c c-tip"><p>Почему рекурсия: чтобы передать <code>a</code> по значению в параметр <code>s</code>, нужно сделать копию <code>a</code>… конструктором копирования, который снова принимает по значению… и так до переполнения стека. На практике компилятор такое просто не пропустит.</p></aside>
+<p>Аргумент передают по <b>константной ссылке</b>: так конструктор работает и с временными объектами, и не может испортить оригинал.</p>
+<script type="text/x-cpp">
+Stack::Stack(const Stack& other) { ... }
+
+Stack a;
+Stack b(a);       // OK
+
+const Stack c;
+Stack d(c);       // OK
+Stack e(Stack()); // осторожно: это снова «most vexing parse» — объявление функции!
+Stack f{Stack()}; // а так — создание объекта
+</script>
+<p>Если не объявить свой конструктор копирования (и конструктор перемещения), компилятор создаст свой: поля-классы копирует их конструкторами копирования, поля базовых типов — побитово.</p>
+<script type="text/x-cpp">
+class A { ... };
+
+class B {
+    A a;
+    int x;
+    // подарок от компилятора:
+    // B(const B& other) : a(other.a), x(other.x) {}
+};
+</script>
+<p>Но компилятор откажется, если какие-то поля скопировать нельзя:</p>
+<script type="text/x-cpp">
+struct A {
+    A() = default;
+private:
+    A(const A&);
+};
+
+struct B {
+    A a;
+};
+
+B first;
+B second(first); // Ошибка компиляции
+</script>
+<h3>= default для копирования</h3>
+<script type="text/x-cpp">
+struct B {
+    B() = default;
+    B(const B&) = default;
+};
+
+B first;
+B second(first); // OK
+</script>
+<p>Хотя достаточно просто не писать свой конструктор копирования — компилятор сгенерирует его сам.</p>
+<aside class="c c-ub" data-l="⚠ = default ≠ пустые скобки"><p>Для дефолтного копирования <b>недостаточно</b> пустого тела:</p>
+<script type="text/x-cpp">
+class A { ... };
+
+struct B {
+    int x;
+    A a;
+
+    B() = default; // <=> B() : a() {}
+    B() {};        // <=> B() : a() {} (x не инициализирован!)
+
+    B(const B&) = default; // <=> B(const B& other) : x(other.x), a(other.a) {}
+    B(const B&) {}         // <=> B(const B&) : a() {} — НИЧЕГО не скопировано, x — мусор!
+};
+</script></aside>
+<h3>Почему своё копирование вообще нужно</h3>
+<p>Стек хранит <code>int* buffer_</code>. Сгенерированный конструктор скопирует <b>указатель</b>, а не массив. Два стека будут делить один буфер, а потом оба вызовут <code>delete[]</code> — двойное освобождение:</p>
+<div class="trace" data-title="Поверхностная копия (shallow copy)">
+<script type="text/x-cpp">
+struct Stack {
+    int* buffer_;
+    Stack() : buffer_(new int[3]{1, 2, 3}) {}
+    ~Stack() { delete[] buffer_; }
+};
+int main() {
+    Stack a;
+    Stack b(a);       // сгенерированное копирование
+    b.buffer_[0] = 9; // меняем b...
+}                     // ~b, затем ~a: delete[] одного и того же!
+</script>
+<script type="application/json">{"steps":[
+{"l":7,"n":"<code>a</code> выделил буфер в куче.","st":[{"f":"main()","v":[["a.buffer_","int*","0x7000",{"p":"h1.0"}]]}],"hp":[{"id":"h1","l":"new int[3]","a":"0x7000","c":["1","2","3"]}]},
+{"l":8,"n":"Сгенерированный конструктор копирования копирует <b>поля</b>, то есть значение указателя. Новый буфер не создаётся: обе стрелки ведут в одну память.","st":[{"f":"main()","v":[["a.buffer_","int*","0x7000",{"p":"h1.0"}],["b.buffer_","int*","0x7000",{"p":"h1.0"}]]}],"hp":[{"id":"h1","l":"new int[3]","a":"0x7000","c":["1","2","3"]}]},
+{"l":9,"n":"Меняем «свой» <code>b</code> — портится и <code>a</code>. Сюрприз.","st":[{"f":"main()","v":[["a.buffer_","int*","0x7000",{"p":"h1.0"}],["b.buffer_","int*","0x7000",{"p":"h1.0"}]]}],"hp":[{"id":"h1","l":"new int[3]","a":"0x7000","c":["9","2","3"]}]},
+{"l":10,"n":"Выход из <code>main</code>: деструктор <code>b</code> освободил буфер. <code>a.buffer_</code> теперь висячий…","st":[{"f":"main()","v":[["a.buffer_","int*","0x7000",{"p":"h1.0","dang":true}]]}],"hp":[{"id":"h1","l":"освобождено","a":"0x7000","c":["?","?","?"],"free":true}]},
+{"l":10,"n":"…и деструктор <code>a</code> делает <code>delete[]</code> той же памяти ещё раз. <b>Double free — UB</b>, обычно падение. Лечится своим конструктором копирования с глубокой копией: новый буфер и поэлементное копирование. И это первый шаг к «правилу трёх» (глава 25).","st":[],"hp":[{"id":"h1","l":"double free!","a":"0x7000","c":["💥"],"free":true}]}
+]}</script>
+</div>
+</section>
+
+<section>
+<h2><span class="sn">23.6</span> Делегирующие конструкторы</h2>
+<p>Конструкторы часто дублируют друг друга. Можно вызвать один конструктор из другого — <b>делегирование</b>:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+class Stack {
+    inline static const size_t kCapacity = 100;
+    int* buffer_;
+    size_t size_;
+public:
+    Stack(size_t size, const int* values) : buffer_(new int[kCapacity]), size_(size) {
+        for (size_t i = 0; i < size; ++i) {
+            buffer_[i] = values[i];
+        }
+    }
+    Stack(const Stack& other) : Stack(other.size_, other.buffer_) {
+        // делегирование конструктору выше — глубокая копия бесплатно
+    }
+    ~Stack() { delete[] buffer_; }
+    int& At(size_t i) { return buffer_[i]; }
+    size_t Size() const { return size_; }
+};
+
+int main() {
+    int init[3]{1, 2, 3};
+    Stack a(3, init);
+    Stack b(a);           // свой буфер у b
+    b.At(0) = 9; // a не меняется
+    std::cout << a.At(0) << ' ' << b.At(0) << '\n'; // 1 9
+} // два разных буфера — два корректных delete[]
+</script>
+<aside class="c c-imp"><p>Если применено делегирование, инициализация целиком на совести вызванного конструктора: инициализировать отдельные поля в списке инициализации делегирующего конструктора уже нельзя.</p></aside>
+</section>

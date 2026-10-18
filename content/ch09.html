@@ -1,0 +1,316 @@
+<aside class="c c-def"><p><b>Цикл</b> — оператор, позволяющий организовать повторяющееся выполнение другого оператора или фрагмента кода.</p></aside>
+
+<section>
+<h2><span class="sn">9.1</span> Цикл while</h2>
+<aside class="c c-def"><p><code>while (&lt;condition&gt;) &lt;statement&gt;</code></p>
+<ul><li><b>condition</b> — выражение или объявление переменной с инициализатором; значение приводится к <code>bool</code>;</li><li><b>statement</b> — оператор (может быть составным).</li></ul></aside>
+<p>Порядок выполнения:</p>
+<ol><li>Вычисляется условие.</li><li>Если <code>true</code> — выполняется тело.</li><li>После тела — снова к шагу 1.</li><li>Если <code>false</code> — выход из цикла.</li></ol>
+<p><b>Пример 1.87.</b> Вводится n целых чисел, найти их сумму. Без цикла задачу не решить: мы не знаем n заранее.</p>
+<div class="trace" data-title="while: сумма n чисел (ввод: 3, затем 5 2 8)">
+<script type="text/x-cpp">
+int n;
+std::cin >> n;
+int sum = 0;
+while (n > 0) {
+    int x;
+    std::cin >> x;
+    sum += x;
+    --n;
+}
+std::cout << sum << '\n';
+</script>
+<script type="application/json">{"steps":[
+{"l":2,"n":"Считали <code>n = 3</code>.","st":[{"f":"main()","v":[["n","int","3"]]}]},
+{"l":3,"n":"<code>sum = 0</code> — инициализировать обязательно, иначе прибавим к мусору (UB).","st":[{"f":"main()","v":[["n","int","3"],["sum","int","0"]]}]},
+{"l":4,"n":"Проверка: <code>3 &gt; 0</code> — true, входим в тело.","st":[{"f":"main()","v":[["n","int","3"],["sum","int","0"]]}]},
+{"l":6,"n":"<code>x</code> создаётся заново на каждой итерации. Считали 5.","st":[{"f":"main()","v":[["n","int","3"],["sum","int","0"],["x","int","5"]]}]},
+{"l":8,"n":"<code>sum += x</code> → 5, <code>--n</code> → 2. Конец тела, <code>x</code> уничтожается.","st":[{"f":"main()","v":[["n","int","2"],["sum","int","5"]]}]},
+{"l":4,"n":"Снова проверка: <code>2 &gt; 0</code> — true.","st":[{"f":"main()","v":[["n","int","2"],["sum","int","5"]]}]},
+{"l":8,"n":"Итерация 2: считали 2, <code>sum</code> = 7, <code>n</code> = 1.","st":[{"f":"main()","v":[["n","int","1"],["sum","int","7"]]}]},
+{"l":8,"n":"Итерация 3: считали 8, <code>sum</code> = 15, <code>n</code> = 0.","st":[{"f":"main()","v":[["n","int","0"],["sum","int","15"]]}]},
+{"l":4,"n":"Проверка: <code>0 &gt; 0</code> — false. Выходим из цикла.","st":[{"f":"main()","v":[["n","int","0"],["sum","int","15"]]}]},
+{"l":10,"n":"Печатаем сумму.","st":[{"f":"main()","v":[["n","int","0"],["sum","int","15"]]}],"out":"15\n"}
+]}</script>
+</div>
+<script type="text/x-cpp" data-run data-stdin="3&#10;5 2 8">
+#include <iostream>
+
+int main() {
+    int n;
+    std::cin >> n;
+    int sum = 0;
+    while (n > 0) {
+        int x;
+        std::cin >> x;
+        sum += x;
+        --n;
+    }
+    std::cout << sum << '\n';
+    return 0;
+}
+</script>
+<p>Внимательно посмотри на следующие примеры, важно понять результат:</p>
+<script type="text/x-cpp">
+// бесконечный цикл
+while (true) std::cout << 0;
+</script>
+<script type="text/x-cpp">
+x = -5;
+while (int sqr = x * x) {
+    ++x;
+    std::cout << sqr << '\n';
+}
+</script>
+<div class="qz" data-type="single" data-ans="1">
+<div class="q">Что делает цикл выше (<code>x = -5</code>)?</div>
+<ol><li>Никогда не остановится: квадрат всегда положителен</li><li>Выведет 25, 16, 9, 4, 1 и остановится, когда <code>x</code> станет 0</li><li>Не выполнится ни разу</li></ol>
+<div class="why">В конспекте сказано, что цикл никогда не остановится, «так как sqr всегда положителен (кроме x = 0)». Но смотри внимательно: <code>x</code> растёт на каждой итерации: −5, −4, …, −1, 0. При <code>x = 0</code> условие <code>sqr = 0</code> ложно, цикл завершится. Вывод: 25 16 9 4 1. Запусти в песочнице и убедись. А вот если бы <code>x</code> начинался с 1 — да, ушли бы в бесконечность (до переполнения, то есть UB).</div>
+</div>
+<script type="text/x-cpp">
+// пустой цикл
+while (x); // тело — пустой оператор ;
+
+// эквивалентно:
+while (x) {
+    // ничего не делаем
+}
+</script>
+<aside class="c c-ub"><p>Такой цикл потенциально даёт UB при оптимизациях. Если <code>x</code> не меняется внутри и не <code>volatile</code>:</p>
+<ul><li><code>x</code> изначально <code>false</code> — цикл не выполнится ни разу;</li><li><code>x</code> изначально <code>true</code> — бесконечный цикл без побочных эффектов, а это UB: компилятор вправе считать, что такой цикл завершается;</li><li><code>x</code> объявлен <code>volatile</code> — поведение определено (кто-то снаружи может поменять).</li></ul></aside>
+<aside class="c c-imp"><p>Если переменная объявлена в условии, она <b>создаётся заново на каждой итерации</b>:</p>
+<script type="text/x-cpp">
+while (int x = get_value()) {
+    // x создаётся заново на каждой итерации,
+    // предыдущее значение теряется
+}
+// x здесь недоступен
+</script></aside>
+<p><code>while</code> удобен, когда ввод идёт до какого-то признака конца, например до нуля:</p>
+<script type="text/x-cpp" data-run data-stdin="4 8 15 16 23 42 0">
+#include <iostream>
+int main() {
+    // чтение чисел до 0
+    int sum = 0;
+    int x;
+    while (std::cin >> x, x) { // запятая: сначала читаем, потом проверяем x
+        sum += x;
+    }
+    std::cout << "Sum: " << sum << '\n';
+    return 0;
+}
+</script>
+<aside class="c c-tip"><p>Если ввод закончится раньше нуля, <code>std::cin &gt;&gt; x</code> провалится, а <code>x</code> (с C++11) станет 0, и цикл тоже выйдет. А идиома «читать, пока читается» — <code>while (std::cin &gt;&gt; x)</code>: поток в условии приводится к <code>bool</code> и становится <code>false</code> на конце ввода.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">9.2</span> Цикл do-while</h2>
+<p>Как <code>while</code>, но тело выполняется <b>до</b> проверки условия:</p>
+<script type="text/x-cpp">
+do <statement> while (<condition>);
+</script>
+<aside class="c c-imp"><p><code>condition</code> — выражение или объявление с инициализатором, приводимое к <code>bool</code>. В отличие от <code>while</code>, <code>do-while</code> гарантирует <b>хотя бы одну итерацию</b>, даже если условие изначально ложно.</p></aside>
+<script type="text/x-cpp" data-run data-stdin="3 -2 0 7">
+#include <iostream>
+int main() {
+    int x;
+    do {
+        std::cin >> x; // предполагается корректный ввод целого числа
+        std::cout << x * x << '\n';
+    } while (x);
+    return 0;
+}
+</script>
+<p>Заметь: 0 тоже возводится в квадрат и печатается (тело выполнилось до проверки), а <code>7</code> уже не читается.</p>
+<aside class="c c-prod"><p>Классика <code>do-while</code> — меню консольной программы и повтор запроса до корректного ввода: сначала спросить, потом проверить. В сетевом коде так же устроены повторы: «отправить → проверить ответ → если не ок, повторить».</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">9.3</span> Цикл for</h2>
+<aside class="c c-def"><p><code>for ([init]; [condition]; [expression]) &lt;statement&gt;</code></p>
+<ul>
+<li><b>init</b> — выражение или объявление; переменные из init живут только внутри цикла;</li>
+<li><b>condition</b> — выражение, приводимое к <code>bool</code>;</li>
+<li><b>expression</b> — произвольное выражение, выполняется после каждой итерации тела;</li>
+<li><b>statement</b> — тело цикла.</li>
+</ul></aside>
+<p>Порядок:</p>
+<ol><li><code>init</code> — один раз в начале.</li><li>Проверка <code>condition</code>: true — тело, false — выход.</li><li>После тела — <code>expression</code>.</li><li>Назад к шагу 2.</li></ol>
+<aside class="c c-imp" data-l="for — это while в красивой обёртке">
+<script type="text/x-cpp">
+for ([init]; [condition]; [expression]) <statement>
+// эквивалентно:
+{
+    [init];
+    while ([condition]) {
+        <statement>
+        [expression];
+    }
+}
+</script>
+<p>Но читается гораздо лучше, поэтому на практике чаще пишут <code>for</code>. (Есть одно отличие — <code>continue</code>, см. ниже.)</p></aside>
+<aside class="c c-imp"><ul><li>Все три части могут быть пустыми, но точки с запятой обязательны.</li><li>Переменные из init видны (живут) только внутри цикла.</li><li>init может содержать несколько объявлений одного типа.</li></ul></aside>
+<script type="text/x-cpp" data-run data-stdin="5">
+#include <iostream>
+int main() {
+    int n;
+    std::cin >> n;
+    for (int i = 0; i < n; ++i) std::cout << i << ' ';
+    std::cout << '\n';
+    for (int i = 0; i < n; i += 2) {
+        std::cout << i << ' ';
+    }
+    std::cout << '\n';
+    for (int i = 0, j = n; i < j; ++i, --j) std::cout << i << '-' << j << ' ';
+    std::cout << '\n';
+    return 0;
+}
+</script>
+<script type="text/x-cpp">
+// ввод до нуля
+for (std::cin >> x; x != 0; std::cin >> x) {
+    std::cout << x * x << '\n';
+}
+
+for (;;) ...      // бесконечный цикл
+for (; x;) ...    // аналог while (x)
+for (int i = 0, j = 0; i < n && j < m; ++i, ++j) ...
+</script>
+<aside class="c c-imp" data-l="Хороший тон"><ul><li><code>++i</code> предпочтительнее <code>i++</code> в expression (для пользовательских типов префиксный дешевле).</li><li>Для индексов используй беззнаковый <code>size_t</code>: <code>for (size_t i = 0; …)</code>.</li></ul></aside>
+<aside class="c c-ub" data-l="⚠ Но осторожно с беззнаковым счётчиком вниз"><p><code>for (size_t i = n - 1; i &gt;= 0; --i)</code> — <b>бесконечный цикл</b>: беззнаковое <code>i</code> всегда ≥ 0, после 0 оно станет 18446744073709551615. Для обратного прохода пиши <code>for (size_t i = n; i-- &gt; 0; )</code> или используй знаковый счётчик.</p></aside>
+<div class="qz" data-type="out" data-ans="0 3 6 9">
+<div class="q">Что выведет цикл?</div>
+<script type="text/x-cpp">
+#include <iostream>
+int main() {
+    for (int i = 0; i < 10; i += 3) std::cout << i << ' ';
+}
+</script>
+<div class="why">0, 3, 6, 9; дальше 12 &lt; 10 ложно. (Пробел в конце строки не важен.)</div>
+</div>
+<div class="qz" data-type="text" data-ans="6" data-ph="сколько звёздочек">
+<div class="q">Сколько звёздочек напечатают вложенные циклы?</div>
+<script type="text/x-cpp">
+for (int i = 0; i < 4; ++i)
+    for (int j = 0; j < i; ++j)
+        std::cout << '*';
+</script>
+<div class="why">Для i = 0, 1, 2, 3 внутренний цикл делает 0 + 1 + 2 + 3 = <b>6</b> итераций. Если получилось 10 — ты посчитал <code>j &lt;= i</code>. Если 16 — забыл, что граница внутреннего цикла зависит от <code>i</code>.</div>
+</div>
+</section>
+
+<section>
+<h2><span class="sn">9.4</span> Управляющие операторы</h2>
+<h3>break</h3>
+<p>Досрочно завершает цикл (<code>while</code>, <code>do-while</code>, <code>for</code>) или <code>switch</code>. Выходит только из <b>самого внутреннего</b> цикла/switch.</p>
+<script type="text/x-cpp" data-run data-stdin="3&#10;4 0 5">
+#include <iostream>
+int main() {
+    int n;
+    std::cin >> n;
+    for (int i = 0; i < n; ++i) {
+        int x;
+        std::cin >> x;
+        int y = 20;
+        if (x == 0) {
+            std::cout << "Division by zero\n";
+            break;
+        }
+        std::cout << y / x << '\n';
+    }
+    return 0;
+}
+</script>
+<h3>continue</h3>
+<p>Переходит к следующей итерации:</p>
+<ul><li>в <code>while</code> и <code>do-while</code> — сразу к проверке условия;</li><li>в <code>for</code> — сначала выполняется <code>expression</code>, потом проверка условия.</li></ul>
+<script type="text/x-cpp" data-run data-stdin="3&#10;4 0 5">
+#include <iostream>
+int main() {
+    int n;
+    std::cin >> n;
+    for (int i = 0; i < n; ++i) {
+        int x;
+        std::cin >> x;
+        int y = 20;
+        if (x == 0) {
+            std::cout << "Division by zero\n";
+            continue;
+        }
+        std::cout << y / x << '\n';
+    }
+    return 0;
+}
+</script>
+<aside class="c c-tip"><p>Вот где <code>for</code> отличается от «эквивалентного» <code>while</code>: в <code>for</code> после <code>continue</code> выполнится <code>++i</code>, а если механически переписать на <code>while</code> с <code>++i</code> в конце тела, <code>continue</code> его перепрыгнет и цикл зависнет.</p></aside>
+<div class="qz" data-type="out" data-ans="1 3 5 7 9">
+<div class="q">Что выведет?</div>
+<script type="text/x-cpp">
+#include <iostream>
+int main() {
+    for (int i = 0; i < 10; ++i) {
+        if (i % 2 == 0) continue;
+        std::cout << i << ' ';
+    }
+}
+</script>
+<div class="why">Чётные пропускаются через <code>continue</code>, но <code>++i</code> всё равно выполняется.</div>
+</div>
+<h3>goto</h3>
+<p>«Прыжок» в произвольное место функции, помеченное меткой:</p>
+<script type="text/x-cpp">
+int main() {
+    int x;
+    std::cin >> x;
+    goto label;
+    int y;
+    std::cin >> y;
+    std::cout << x + y << '\n';
+    label:
+    return 0;
+}
+</script>
+<aside class="c c-imp"><ul><li>Нельзя перепрыгивать через инициализацию переменных.</li><li>Нельзя выходить из функции (для этого есть <code>return</code>).</li><li>Нельзя переходить между функциями.</li></ul></aside>
+<script type="text/x-cpp" data-run data-ce>
+#include <iostream>
+int main() {
+    {
+        goto label;  // ОШИБКА: перепрыгиваем инициализацию
+        int x = 5;
+        label:
+        std::cout << x << '\n'; // x не инициализирован
+    }
+}
+</script>
+<p>Через <code>goto</code> можно реализовать цикл:</p>
+<script type="text/x-cpp">
+for (int i = 0; i < n; ++i) ...
+// эквивалентно
+int i = 0;
+loop:
+if (i < n) {
+    ...
+    ++i;
+    goto loop;
+}
+</script>
+<p><code>goto</code> лежит в основе <code>switch</code>: все <code>case</code> и <code>default</code> — метки для перехода. Поэтому скомпилируется даже это:</p>
+<script type="text/x-cpp" data-run data-stdin="7">
+#include <iostream>
+int main() {
+    int x;
+    std::cin >> x;
+    switch (x) {
+        case 0: std::cout << "Zero\n"; break;
+        case 1: std::cout << "One\n"; break;
+        deault: std::cout << "Other\n"; // пропущена f!
+    }
+    return 0;
+}
+</script>
+<p>Опечатка <code>deault</code> — это просто обычная метка для <code>goto</code>, а не <code>default</code>. Для <code>x = 7</code> программа не выведет ничего. Компилятор лишь предупредит о неиспользуемой метке.</p>
+<aside class="c c-hist"><p><code>goto</code> достался C++ от C, где был нужнее из-за бедного набора управляющих конструкций. В современных языках его нет вовсе или он сильно ограничен.</p></aside>
+<aside class="c c-imp"><p><code>goto</code> сильно усложняет чтение и отладку. В любых (даже безвыходных) ситуациях можно обойтись без него.</p></aside>
+<aside class="c c-prod"><p>Справедливости ради: в ядре Linux (на C) <code>goto</code> массово используется для одного паттерна — освобождения ресурсов при ошибке (<code>goto err_free_mem;</code>). В C++ ту же задачу решают деструкторы и RAII (глава 25), поэтому там <code>goto</code> не нужен совсем.</p></aside>
+<aside class="c c-meme"><p>xkcd #292: программист пишет <code>goto</code>, и на него сзади нападает велоцираптор. Эдсгер Дейкстра в 1968 году написал статью «Go To Statement Considered Harmful», и с тех пор «… considered harmful» — отдельный жанр заголовков.</p></aside>
+</section>

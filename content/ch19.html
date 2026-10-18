@@ -1,0 +1,313 @@
+<aside class="c c-def"><p><b>Многомерный массив</b> — массив, элементы которого сами являются массивами. Чаще всего встречается двумерный (матрица, таблица), но бывают и трёх-, и четырёхмерные.</p></aside>
+<aside class="c c-imp"><p>В C++ многомерные массивы — это <b>массивы массивов</b>. Способ создания (статический или динамический) кардинально влияет на расположение в памяти.</p></aside>
+
+<section>
+<h2><span class="sn">19.1</span> Статические многомерные массивы</h2>
+<script type="text/x-cpp">
+int a[10];       // одномерный
+int b[5][20];    // двумерный: 5 строк, 20 столбцов
+int c[7][9][3];  // трёхмерный
+
+a[1];       // индекс 1
+b[3][11];   // строка 3, столбец 11
+c[3][8][0]; // слой 3, строка 8, столбец 0
+</script>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+int main() {
+    // поэлементная инициализация (по строкам)
+    int a[2][3]{1, 2, 3, 4};      // 1 2 3 / 4 0 0
+    // автоматический вывод первой размерности
+    int b[][2]{1, 2, 3, 4};       // 1 2 / 3 4
+    // инициализация списками
+    int c[3][2]{{1, 2}, {3, 4}, {5, 6}};
+
+    for (int i = 0; i < 2; ++i) {
+        for (int j = 0; j < 3; ++j) std::cout << a[i][j] << ' ';
+        std::cout << '\n';
+    }
+    std::cout << sizeof(b) / sizeof(b[0]) << " строки в b\n";
+    std::cout << c[2][1] << '\n'; // 6
+}
+</script>
+<p>Матрица <code>int a[3][3]</code> логически выглядит как таблица:</p>
+<div class="tw"><table>
+<tr><th></th><th>столбец 0</th><th>столбец 1</th><th>столбец 2</th></tr>
+<tr><th>строка 0</th><td><code>a[0][0]</code></td><td><code>a[0][1]</code></td><td><code>a[0][2]</code></td></tr>
+<tr><th>строка 1</th><td><code>a[1][0]</code></td><td><code>a[1][1]</code></td><td><code>a[1][2]</code></td></tr>
+<tr><th>строка 2</th><td><code>a[2][0]</code></td><td><code>a[2][1]</code></td><td><code>a[2][2]</code></td></tr>
+</table></div>
+<aside class="c c-imp" data-l="Упражнение 19.1: как это лежит в памяти"><p>Статический массив хранится <b>единым непрерывным блоком, построчно</b> (row-major). Для <code>int a[3][3]</code> выделяется 3 × 3 × <code>sizeof(int)</code> байт подряд:</p>
+<p style="font-family:var(--f-mono);overflow-x:auto;white-space:nowrap">[0][0] [0][1] [0][2] │ [1][0] [1][1] [1][2] │ [2][0] [2][1] [2][2]</p>
+<p>Поэтому <code>&amp;a[0][0] + 1 == &amp;a[0][1]</code> и <code>&amp;a[0][2] + 1 == &amp;a[1][0]</code>.</p></aside>
+<div class="trace" data-title="Двумерный массив — это просто длинная строка">
+<script type="text/x-cpp">
+int a[2][3]{{1, 2, 3}, {4, 5, 6}};
+int* p = &a[0][0];
+p += 4;
+*p = 50;
+</script>
+<script type="application/json">{"steps":[
+{"l":1,"n":"Логически 2 строки по 3, физически — 6 <code>int</code> подряд. Индексы ниже — позиции в памяти.","st":[{"f":"main()","v":[["a","int[2][3]",["1","2","3","4","5","6"]]]}]},
+{"l":2,"n":"Указатель на самый первый элемент.","st":[{"f":"main()","v":[["a","int[2][3]",["1","2","3","4","5","6"]],["p","int*","&a[0][0]",{"p":"a.0"}]]}]},
+{"l":3,"n":"+4 элемента: прошли всю строку 0 (3 штуки) и ещё один. Это <code>a[1][1]</code>, то есть позиция <code>1·3 + 1 = 4</code>.","st":[{"f":"main()","v":[["a","int[2][3]",["1","2","3","4","5","6"]],["p","int*","&a[1][1]",{"p":"a.4"}]]}]},
+{"l":4,"n":"Записали 50 в <code>a[1][1]</code>. Формула: <code>a[i][j]</code> лежит на позиции <code>i * M + j</code>.","st":[{"f":"main()","v":[["a","int[2][3]",["1","2","3","4","50","6"]],["p","int*","&a[1][1]",{"p":"a.4"}]]}]}
+]}</script>
+</div>
+<p>Многомерный массив неявно преобразуется к указателю на свой первый элемент, который сам является массивом:</p>
+<script type="text/x-cpp">
+int arr[2][3];
+
+// arr        -> тип int(*)[3] (указатель на массив из 3 int)
+// arr[0]     -> тип int[3]    (массив из 3 int)
+// &arr[0][0] -> тип int*      (указатель на int)
+
+// эквивалентные записи:
+arr[i][j] == *(*(arr + i) + j) == *(arr[0] + i * 3 + j)
+</script>
+<aside class="c c-imp"><p><code>sizeof(arr)</code> для <code>int arr[N][M]</code> возвращает <code>N * M * sizeof(int)</code> — в отличие от динамического массива, где получится размер указателя.</p></aside>
+<p>Стандартные обходы — по строкам и по столбцам:</p>
+<script type="text/x-cpp">
+for (int i = 0; i < n; ++i)      // по строкам
+    for (int j = 0; j < m; ++j)
+        process(a[i][j]);
+
+for (int j = 0; j < m; ++j)      // по столбцам
+    for (int i = 0; i < n; ++i)
+        process(a[i][j]);
+</script>
+<aside class="c c-prod"><p>Обход по строкам для больших матриц быстрее в разы: соседние элементы строки лежат рядом и попадают в кэш процессора одной загрузкой. Обход по столбцам прыгает по памяти с шагом в целую строку. На матрице 4000×4000 разница легко бывает 3–10×, хотя операций ровно столько же. Поэтому в numpy и библиотеках линейной алгебры так трясутся над row-major и column-major.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">19.2</span> Динамические многомерные массивы</h2>
+<p>Когда размеры неизвестны при компиляции, используют «массив указателей на массивы»:</p>
+<script type="text/x-cpp" data-run data-stdin="2 3&#10;1 2 3&#10;4 5 6">
+#include <iostream>
+int main() {
+    int n, m;
+    std::cin >> n >> m;
+    int** matrix = new int*[n];      // массив указателей
+    for (int i = 0; i < n; ++i) {
+        matrix[i] = new int[m];      // каждая строка — отдельный массив
+    }
+
+    for (int i = 0; i < n; ++i)      // чтение элементов
+        for (int j = 0; j < m; ++j)
+            std::cin >> matrix[i][j];
+
+    for (int j = 0; j < m; ++j) {    // выведем транспонированную
+        for (int i = 0; i < n; ++i) std::cout << matrix[i][j] << ' ';
+        std::cout << '\n';
+    }
+
+    for (int i = 0; i < n; ++i) {    // удаление
+        delete[] matrix[i];          // сначала строки
+    }
+    delete[] matrix;                 // потом массив указателей
+}
+</script>
+<div class="trace" data-title="int** matrix: два уровня">
+<script type="text/x-cpp">
+int** matrix = new int*[3];
+for (int i = 0; i < 3; ++i)
+    matrix[i] = new int[3]{};
+matrix[1][2] = 7;
+</script>
+<script type="application/json">{"steps":[
+{"l":1,"n":"Сначала в куче массив из 3 <b>указателей</b> (пока мусор).","st":[{"f":"main()","v":[["matrix","int**","0x9000",{"p":"P.0"}]]}],"hp":[{"id":"P","l":"new int*[3]","a":"0x9000","c":["?","?","?"]}]},
+{"l":3,"n":"Каждая строка выделяется отдельно, где-то в куче. Строки <b>не обязаны</b> идти подряд!","st":[{"f":"main()","v":[["matrix","int**","0x9000",{"p":"P.0"}]]}],"hp":[{"id":"P","l":"new int*[3]","a":"0x9000","c":["0x9a10","0xb320","0x9d08"]},{"id":"R0","l":"строка 0","a":"0x9a10","c":["0","0","0"]},{"id":"R1","l":"строка 1","a":"0xb320","c":["0","0","0"]},{"id":"R2","l":"строка 2","a":"0x9d08","c":["0","0","0"]}]},
+{"l":4,"n":"<code>matrix[1][2]</code>: взять указатель <code>matrix[1]</code> (адрес строки 1), пойти по нему и взять элемент 2. Две «прыжковые» операции вместо одной у статического массива.","st":[{"f":"main()","v":[["matrix","int**","0x9000",{"p":"P.0"}]]}],"hp":[{"id":"P","l":"new int*[3]","a":"0x9000","c":["0x9a10","0xb320","0x9d08"]},{"id":"R0","l":"строка 0","a":"0x9a10","c":["0","0","0"]},{"id":"R1","l":"строка 1","a":"0xb320","c":["0","0","7"]},{"id":"R2","l":"строка 2","a":"0x9d08","c":["0","0","0"]}]}
+]}</script>
+</div>
+<aside class="c c-imp"><p>Такой подход <b>не гарантирует непрерывности</b>: каждая строка может лежать где угодно. Для непрерывной памяти используют одномерный массив и индексацию «руками»:</p>
+<script type="text/x-cpp">
+int* data = new int[n * m];
+// доступ: data[i * m + j]
+</script>
+<p>Подумай, почему <code>i * m + j</code>: перед строкой <code>i</code> лежат <code>i</code> полных строк по <code>m</code> элементов, и ещё <code>j</code> элементов внутри строки.</p></aside>
+<p>Итого у <code>int**</code>-матрицы два уровня: массив указателей (<code>n · sizeof(int*)</code> байт) и отдельные блоки строк (по <code>m · sizeof(int)</code> байт).</p>
+<aside class="c c-ub"><p>Порядок освобождения важен: сначала строки (<code>delete[] matrix[i]</code>), потом массив указателей (<code>delete[] matrix</code>). Наоборот — и адреса строк потеряны (утечка), а чтение <code>matrix[i]</code> после освобождения — UB.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">19.3</span> Квадратные матрицы</h2>
+<aside class="c c-def"><p><b>Квадратная матрица</b> — двумерный массив n × n: строк столько же, сколько столбцов.</p></aside>
+<aside class="c c-imp"><ul><li><b>Главная диагональ</b> — индекс строки равен индексу столбца: <code>a[i][i]</code>.</li><li><b>Побочная диагональ</b> — сумма индексов равна n − 1: <code>a[i][n - 1 - i]</code>.</li></ul></aside>
+<div class="tw"><table style="font-family:var(--f-mono);text-align:center">
+<tr><td style="background:var(--red-soft)">a00</td><td>a01</td><td>a02</td><td style="background:var(--pen-soft)">a03</td></tr>
+<tr><td>a10</td><td style="background:var(--red-soft)">a11</td><td style="background:var(--pen-soft)">a12</td><td>a13</td></tr>
+<tr><td>a20</td><td style="background:var(--pen-soft)">a21</td><td style="background:var(--red-soft)">a22</td><td>a23</td></tr>
+<tr><td style="background:var(--pen-soft)">a30</td><td>a31</td><td>a32</td><td style="background:var(--red-soft)">a33</td></tr>
+</table></div>
+<p>Красным — главная диагональ, синим — побочная.</p>
+<aside class="c c-imp"><p>Индексы диагоналей работают только для квадратных матриц. Для прямоугольных понятия «главной» и «побочной» диагонали в строгом смысле не определены.</p></aside>
+<p><b>Упражнение 19.2.</b> Функция <code>void printDiagonals(const int* const* matrix, int n);</code> выводит обе диагонали. Тип <code>const int* const*</code> предполагает матрицу как «массив указателей»:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+
+void printDiagonals(const int* const* matrix, int n) {
+    std::cout << "Главная диагональ: ";
+    for (int i = 0; i < n; ++i) {
+        std::cout << matrix[i][i] << " ";
+    }
+    std::cout << '\n';
+
+    std::cout << "Побочная диагональ: ";
+    for (int i = 0; i < n; ++i) {
+        std::cout << matrix[i][n - 1 - i] << " ";
+    }
+    std::cout << '\n';
+}
+
+int main() {
+    const int n = 5;
+    int** matrix = new int*[n];
+    for (int i = 0; i < n; ++i) {
+        matrix[i] = new int[n];
+        for (int j = 0; j < n; ++j) {
+            matrix[i][j] = i * n + j + 1; // числа 1..25
+        }
+    }
+
+    std::cout << "Матрица:\n";
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < n; ++j) {
+            std::cout << matrix[i][j] << "\t";
+        }
+        std::cout << "\n";
+    }
+    std::cout << "\n";
+
+    printDiagonals(matrix, n);
+
+    for (int i = 0; i < n; ++i) {
+        delete[] matrix[i];
+    }
+    delete[] matrix;
+    return 0;
+}
+</script>
+<aside class="c c-imp"><p>Если матрица хранится одномерно (<code>int* data = new int[n*n]</code>): главная диагональ — <code>data[i * n + i]</code>, побочная — <code>data[i * n + (n - 1 - i)]</code>.</p></aside>
+<p>Типовые операции:</p>
+<script type="text/x-cpp">
+// сумма главной диагонали
+int sum = 0;
+for (int i = 0; i < n; ++i) {
+    sum += matrix[i][i];
+}
+
+// симметрична ли матрица относительно главной диагонали
+bool isSymmetric = true;
+for (int i = 0; i < n; ++i) {
+    for (int j = i + 1; j < n; ++j) {   // только над диагональю — вдвое меньше работы
+        if (matrix[i][j] != matrix[j][i]) {
+            isSymmetric = false;
+            break;
+        }
+    }
+    if (!isSymmetric) break;            // break выходит только из внутреннего цикла!
+}
+
+// заполнить главную диагональ единицами, побочную — нулями
+for (int i = 0; i < n; ++i) matrix[i][i] = 1;
+for (int i = 0; i < n; ++i) matrix[i][n - 1 - i] = 0;
+</script>
+<div class="qz" data-type="text" data-ans="0" data-ph="число элементов">
+<div class="q">Сколько элементов матрицы 4×4 лежат одновременно на главной и на побочной диагонали?</div>
+<div class="why">Пересечение — это <code>i == n - 1 - i</code>, то есть <code>i = (n - 1) / 2</code>. Целое решение есть только при нечётном n. Для 4×4 — <b>0</b> элементов, для 5×5 — один, центр <code>a[2][2]</code>. Поэтому в задачах «сумма обеих диагоналей» для нечётного n центр нельзя посчитать дважды.</div>
+</div>
+</section>
+
+<section>
+<h2><span class="sn">19.4</span> Заполнение матриц</h2>
+<p>Частая задача — заполнить матрицу по паттерну. Самые популярные — «змейки» и спираль. Жми «заполнить» и следи за порядком:</p>
+<div class="viz-slot" data-viz="matrix" data-cfg='{"pattern":"snake","n":5}'></div>
+<h3>Змейка по строкам (горизонтальная)</h3>
+<p>Слева направо в чётных строках, справа налево — в нечётных. Для позиции (i, j) в матрице n × m:</p>
+<p style="font-family:var(--f-mono)">значение = i·m + j + 1, если i чётное;<br>значение = (i + 1)·m − j, если i нечётное.</p>
+<script type="text/x-cpp" data-run data-stdin="4 5">
+#include <iostream>
+int main() {
+    int n, m;
+    std::cin >> n >> m;
+    int matrix[20][20];
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) {
+            if (i % 2 == 0) {
+                matrix[i][j] = i * m + j + 1;
+            } else {
+                matrix[i][j] = (i + 1) * m - j;
+            }
+        }
+    }
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) std::cout << matrix[i][j] << '\t';
+        std::cout << '\n';
+    }
+}
+</script>
+<aside class="c c-imp"><p>Метод работает для любых прямоугольных матриц.</p></aside>
+<h3>Змейка по столбцам (вертикальная)</h3>
+<p>Сверху вниз в чётных столбцах, снизу вверх — в нечётных:</p>
+<p style="font-family:var(--f-mono)">значение = j·n + i + 1, если j чётное;<br>значение = (j + 1)·n − i, если j нечётное.</p>
+<script type="text/x-cpp">
+for (int j = 0; j < m; ++j) {
+    for (int i = 0; i < n; ++i) {
+        if (j % 2 == 0) {
+            matrix[i][j] = j * n + i + 1;
+        } else {
+            matrix[i][j] = (j + 1) * n - i;
+        }
+    }
+}
+</script>
+<aside class="c c-imp"><p>Порядок циклов — сначала по столбцам, потом по строкам — чтобы заполнять «по столбцам».</p></aside>
+<h3>Змейка по квадрату (спираль)</h3>
+<p>Числа идут по спирали от левого верхнего угла по часовой стрелке внутрь. Алгоритм работает <b>слоями</b>: обходим внешний прямоугольный контур, сужаем границы, переходим к следующему внутреннему.</p>
+<script type="text/x-cpp" data-run data-stdin="5 5">
+#include <iostream>
+int main() {
+    int n, m;
+    std::cin >> n >> m;
+    int matrix[20][20];
+    int num = 1;
+    int top = 0, bottom = n - 1;
+    int left = 0, right = m - 1;
+
+    while (top <= bottom && left <= right) {
+        // вправо по верхней строке
+        for (int j = left; j <= right; ++j) {
+            matrix[top][j] = num++;
+        }
+        top++;
+        // вниз по правому столбцу
+        for (int i = top; i <= bottom; ++i) {
+            matrix[i][right] = num++;
+        }
+        right--;
+        // влево по нижней строке
+        if (top <= bottom) {
+            for (int j = right; j >= left; --j) {
+                matrix[bottom][j] = num++;
+            }
+            bottom--;
+        }
+        // вверх по левому столбцу
+        if (left <= right) {
+            for (int i = bottom; i >= top; --i) {
+                matrix[i][left] = num++;
+            }
+            left++;
+        }
+    }
+    for (int i = 0; i < n; ++i) {
+        for (int j = 0; j < m; ++j) std::cout << matrix[i][j] << '\t';
+        std::cout << '\n';
+    }
+}
+</script>
+<aside class="c c-imp"><p>Алгоритм работает для любых прямоугольных матриц. При нечётном числе строк или столбцов центральный элемент заполняется последним. Проверки <code>if (top &lt;= bottom)</code> и <code>if (left &lt;= right)</code> нужны, чтобы на последнем «тонком» слое (одна строка или один столбец) не пройти его дважды.</p></aside>
+<div class="viz-slot" data-viz="matrix" data-cfg='{"pattern":"spiral","n":6}'></div>
+<aside class="c c-prod"><p>Матрицы в проде повсюду: изображение — это матрица пикселей (поворот фото на 90° — транспонирование плюс отражение), игровое поле, таблица в Excel. А «спиральный обход» — задача <i>Spiral Matrix</i> с LeetCode, которую реально дают на собеседованиях в большие компании.</p></aside>
+</section>

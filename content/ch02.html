@@ -1,0 +1,467 @@
+<section>
+<h2><span class="sn">2.1</span> Типы данных</h2>
+<aside class="c c-def"><p><b>Тип данных</b> — свойство программных сущностей, которое определяет:</p>
+<ol><li>множество допустимых значений;</li><li>допустимые операции;</li><li>низкоуровневое представление — как интерпретировать биты, то есть как «читать» число.</li></ol></aside>
+<p>Типов в C++ много, и мы будем создавать свои. Но любой тип состоит из фундаментальных или является производным от них:</p>
+<div class="tw"><table>
+<tr><th>Категория</th><th>Типы</th></tr>
+<tr><td>Пустой</td><td><code>void</code></td></tr>
+<tr><td>Целые</td><td><code>int</code>, <code>short</code>, <code>long</code>, <code>long long</code></td></tr>
+<tr><td>С плавающей точкой</td><td><code>float</code>, <code>double</code>, <code>long double</code></td></tr>
+<tr><td>Символьные</td><td><code>char</code>, <code>char8_t</code>, <code>char16_t</code>, <code>char32_t</code></td></tr>
+<tr><td>Логический</td><td><code>bool</code></td></tr>
+<tr><td>Нулевой указатель</td><td><code>std::nullptr_t</code></td></tr>
+</table></div>
+<p>Почему «интерпретация битов» — это часть типа? Потому что один и тот же байт <code>11111111</code> — это 255 для <code>unsigned char</code> и −1 для <code>signed char</code>. Память не знает, что в ней лежит. Знает только тип.</p>
+</section>
+
+<section>
+<h2><span class="sn">2.2</span> Целый тип данных</h2>
+<p>Самый используемый тип — целый, поэтому ему больше всего внимания (и не только сейчас).</p>
+
+<h3>int</h3>
+<aside class="c c-imp"><p>Стандарт гарантирует, что <code>int</code> занимает <b>минимум 16 бит</b> (2 байта).</p></aside>
+<p>На практике почти всегда <code>int</code> — 32 бита (4 байта), диапазон <b>[−2 147 483 648; 2 147 483 647]</b>, то есть <b>[−2³¹; 2³¹ − 1]</b>. Литералы: <code>0</code>, <code>1</code>, <code>-4</code>, <code>100</code>, <code>576843</code>.</p>
+<p>Почему асимметрично? Из 2³² комбинаций одна уходит на ноль, а остальные делятся поровну на отрицательные и положительные, кроме «лишнего» отрицательного. Разберёмся в главе про дополнительный код.</p>
+
+<h3>long</h3>
+<aside class="c c-imp"><p>Стандарт: <code>long</code> — <b>минимум 32 бита</b> и не меньше <code>int</code>.</p></aside>
+<p>То есть гарантированный диапазон тоже [−2³¹; 2³¹ − 1]. Литералы: <code>0l</code>, <code>1L</code>, <code>-4l</code>, <code>100L</code>, <code>1123576843l</code>.</p>
+<aside class="c c-imp" data-l="Зачем long, если он как int?"><p>Исторически: на старых 16-битных системах <code>int</code> был 16 бит, а <code>long</code> давал 32. Сейчас его поддерживают для обратной совместимости и чтобы <i>гарантированно</i> иметь минимум 32 бита.</p></aside>
+<aside class="c c-ub" data-l="⚠ Ловушка платформы"><p>На 64-битных Linux и macOS <code>long</code> — 8 байт, на 64-битной Windows — 4. Код, который «работал на маке», может переполниться на Windows. Нужен точный размер — бери <code>int64_t</code> (ниже). Кстати, наш компилятор в браузере собирает под WebAssembly (32-битная платформа), там <code>sizeof(long) == 4</code>.</p></aside>
+
+<h3>long long</h3>
+<aside class="c c-imp"><p>Стандарт: <code>long long</code> — <b>минимум 64 бита</b> и не меньше <code>long</code>.</p></aside>
+<p>Диапазон [−9 223 372 036 854 775 808; 9 223 372 036 854 775 807] = [−2⁶³; 2⁶³ − 1]. Литералы: <code>0ll</code>, <code>1LL</code>, <code>-4ll</code>, <code>100LL</code>.</p>
+
+<h3>short</h3>
+<aside class="c c-imp"><p>Стандарт: <code>short</code> — <b>минимум 16 бит</b> и не больше <code>int</code>.</p></aside>
+<p>Диапазон [−32 768; 32 767] = [−2¹⁵; 2¹⁵ − 1]. Собственных литералов у <code>short</code> нет.</p>
+
+<h3>sizeof</h3>
+<aside class="c c-imp"><p>Размер типа узнаётся операцией <code>sizeof</code>:</p>
+<ul><li><code>sizeof(type)</code> — размер типа в байтах;</li><li><code>sizeof(expression)</code> — размер типа выражения;</li><li><code>sizeof variable</code> — размер переменной (скобки можно опустить).</li></ul></aside>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+
+int main() {
+    std::cout << "sizeof(int) = " << sizeof(int) << '\n';
+    std::cout << "sizeof(short) = " << sizeof(short) << '\n';
+    std::cout << "sizeof(long) = " << sizeof(long) << '\n';
+    std::cout << "sizeof(long long) = " << sizeof(long long) << '\n';
+
+    int a;
+    std::cout << "sizeof(a) = " << sizeof(a) << '\n';
+    std::cout << "sizeof a = " << sizeof a << '\n'; // скобки можно опускать
+    return 0;
+}
+</script>
+<aside class="c c-imp" data-l="Что гарантирует стандарт"><p style="font-family:var(--f-mono);text-align:center">sizeof(char) ≤ sizeof(short) ≤ sizeof(int) ≤ sizeof(long) ≤ sizeof(long long)</p></aside>
+
+<h3>Упражнения 2.1–2.3: диапазоны не зубрим, а выводим</h3>
+<p>В конспекте прямо сказано: запоминать диапазоны не надо. Зная размер в байтах, можно вывести их самому. Самый надёжный способ — <code>std::numeric_limits</code> или константы из <code>&lt;climits&gt;</code>:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+#include <climits>
+#include <limits>
+
+int main() {
+    std::cout << "int:       [" << INT_MIN << "; " << INT_MAX << "]\n";
+    std::cout << "long:      [" << LONG_MIN << "; " << LONG_MAX << "]\n";
+    std::cout << "long long: [" << LLONG_MIN << "; " << LLONG_MAX << "]\n";
+    std::cout << "short:     [" << std::numeric_limits<short>::min() << "; "
+              << std::numeric_limits<short>::max() << "]\n";
+    // или руками из sizeof: 8 * sizeof(int) бит, старший — знаковый
+    long long bits = 8 * sizeof(int);
+    std::cout << "из sizeof: max int = " << (1LL << (bits - 1)) - 1 << '\n';
+    return 0;
+}
+</script>
+<p>Потыкай в виджет: выбери тип, жми <b>max</b>, потом <b>+1</b>. Это и есть переполнение, о нём ниже.</p>
+<div class="viz-slot" data-viz="bits" data-cfg='{"type":"int16","value":32767}'></div>
+
+<h3>Модификаторы signed / unsigned</h3>
+<p>По умолчанию все целые типы знаковые. Чтобы это подчеркнуть, можно (но не обязательно) писать <code>signed</code>:</p>
+<script type="text/x-cpp">
+int == signed int == signed
+long == signed long == long int == signed long int
+long long == signed long long == long long int == signed long long int
+short == signed short == short int == signed short int
+</script>
+<p>Если значение по смыслу неотрицательное, добавляют <code>unsigned</code>, и диапазон сдвигается:</p>
+<ul><li>2 байта — [0; 65 535]</li><li>4 байта — [0; 4 294 967 295]</li><li>8 байт — [0; 18 446 744 073 709 551 615]</li></ul>
+<script type="text/x-cpp">
+unsigned int == unsigned
+unsigned long == unsigned long int
+unsigned long long == unsigned long long int
+unsigned short == unsigned short int
+</script>
+<p>Беззнаковые литералы — <code>1u</code>, <code>4ul</code>, <code>6ull</code>.</p>
+
+<h3>Операции над целыми</h3>
+<p>Над целыми (кроме <code>short</code>!) можно выполнять все арифметические операции по правилам:</p>
+<ul>
+<li>результат имеет тот же тип, что и операнды;</li>
+<li>при переполнении <b>беззнаковых</b> — арифметика по модулю 2ⁿ, всё законно;</li>
+<li>в остальных случаях переполнение — <b>Undefined Behaviour</b> (неопределённое поведение, UB);</li>
+<li>деление на 0 — UB;</li>
+<li>битовые сдвиги отрицательных чисел тоже могут приводить к UB.</li>
+</ul>
+<p>Если операнды разных типов (или <code>short</code>):</p>
+<ul>
+<li><code>(signed/unsigned) short</code> приводится к <code>int</code>;</li>
+<li>менее широкий тип приводится к более широкому;</li>
+<li>знаковый тип приводится к беззнаковому.</li>
+</ul>
+<script type="text/x-cpp">
+0 + 0l;    // long
+0ll + 0;   // long long
+0l + 0ll;  // long long
+0u + 0;    // unsigned int
+0 + 0ul;   // unsigned long
+0ul + 0ll; // unsigned или signed long long — зависит от платформы
+</script>
+<aside class="c c-ub" data-l="⚠ Классическая ловушка: signed + unsigned"><p>Правило «знаковый приводится к беззнаковому» рождает шедевры. <code>-1 &lt; 1u</code> — это <b>false</b>: −1 превращается в 4 294 967 295. Запусти и посмотри (компилятор, кстати, предупредит).</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+int main() {
+    std::cout << std::boolalpha;
+    std::cout << (-1 < 1) << '\n';   // true
+    std::cout << (-1 < 1u) << '\n';  // false (!)
+    unsigned int u = 0;
+    std::cout << u - 1 << '\n';      // 4294967295, не -1
+    return 0;
+}
+</script></aside>
+<div class="qz" data-type="single" data-ans="3">
+<div class="q">Какой тип у выражения <code>5u + 3ll</code> (на обычной платформе, где <code>long long</code> шире <code>unsigned int</code>)?</div>
+<ol><li><code>unsigned int</code></li><li><code>unsigned long long</code></li><li><code>int</code></li><li><code>long long</code></li></ol>
+<div class="why">Сначала «менее широкий к более широкому»: <code>long long</code> (64 бита) может представить все значения <code>unsigned int</code> (32 бита), поэтому результат — <code>long long</code>. Беззнаковость «побеждает» только когда типы одного ранга (или беззнаковый шире).</div>
+</div>
+
+<h3>Целые типы фиксированной ширины</h3>
+<p>Размеры «плавают» между системами, и это бесит. С C++11 есть типы <b>ровно</b> того размера, что в имени. Нужен <code>&lt;cstdint&gt;</code>:</p>
+<script type="text/x-cpp" data-run>
+#include <cstdint>
+#include <iostream>
+
+int main() {
+    // Знаковые типы фиксированной ширины
+    int8_t a = 127;      // ровно 1 байт
+    int16_t b = 32767;   // 2 байта
+    int32_t c = 100;     // 4 байта
+    int64_t d = 1000;    // 8 байт
+
+    // Беззнаковые
+    uint8_t e = 255;          // 0..255
+    uint16_t f = 65535;       // 0..65535
+    uint32_t g = 100;         // 0..4294967295
+    uint64_t h = 1000;        // 0..18446744073709551615
+
+    std::cout << sizeof(a) << sizeof(b) << sizeof(c) << sizeof(d) << '\n';
+    std::cout << +a << ' ' << +e << '\n'; // + превращает int8_t/uint8_t в число, а не символ
+    return 0;
+}
+</script>
+<aside class="c c-hist"><p>Встречаются два варианта имён: стандартные <code>uint8_t … uint64_t</code> из <code>&lt;cstdint&gt;</code> (C++11) / <code>&lt;stdint.h&gt;</code> (C99) и нестандартные <code>u_int8_t … u_int64_t</code> из старых BSD и некоторых библиотек.</p></aside>
+<aside class="c c-imp"><p>Всегда используй стандартные имена <code>uint8_t</code> и т.д. Нестандартные с подчёркиванием могут не поддерживаться и не гарантируют переносимость.</p></aside>
+<aside class="c c-prod"><p>В сетевых протоколах, форматах файлов (PNG, ZIP), драйверах и финтехе используют только фиксированные типы: заголовок пакета обязан весить ровно 20 байт на любой машине. Если в коде банка видишь <code>int64_t amount_kopecks</code>, это неслучайно: деньги хранят в копейках целым числом фиксированной ширины.</p></aside>
+
+<h3>Арифметические операции и составное присваивание</h3>
+<div class="tw"><table>
+<tr><th>Операция</th><th>Описание</th><th>Составная</th><th>Значит</th></tr>
+<tr><td><code>=</code></td><td>Присваивание</td><td></td><td></td></tr>
+<tr><td><code>+</code></td><td>Сложение, унарный плюс</td><td><code>+=</code></td><td><code>a = a + b</code></td></tr>
+<tr><td><code>-</code></td><td>Вычитание, унарный минус</td><td><code>-=</code></td><td><code>a = a - b</code></td></tr>
+<tr><td><code>*</code></td><td>Умножение</td><td><code>*=</code></td><td><code>a = a * b</code></td></tr>
+<tr><td><code>/</code></td><td>Деление (целочисленное)</td><td><code>/=</code></td><td><code>a = a / b</code></td></tr>
+<tr><td><code>%</code></td><td>Остаток от деления</td><td><code>%=</code></td><td><code>a = a % b</code></td></tr>
+<tr><td><code>++</code></td><td>Инкремент (+1)</td><td></td><td></td></tr>
+<tr><td><code>--</code></td><td>Декремент (−1)</td><td></td><td></td></tr>
+</table></div>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+
+int main() {
+    int a = 10, b = 3;
+
+    int sum = a + b;   // 13
+    int diff = a - b;  // 7
+    int prod = a * b;  // 30
+    int quot = a / b;  // 3 (целочисленное деление)
+    int rem = a % b;   // 1 (остаток)
+    std::cout << sum << ' ' << diff << ' ' << prod << ' ' << quot << ' ' << rem << '\n';
+
+    a += 5;  // a = a + 5 -> 15
+    a -= 2;  // a = a - 2 -> 13
+    a *= 2;  // a = a * 2 -> 26
+    a /= 4;  // a = a / 4 -> 6
+    a %= 4;  // a = a % 4 -> 2
+    std::cout << a << '\n';
+
+    int x = 5;
+    x++;  // x = 6 (постфиксный)
+    ++x;  // x = 7 (префиксный)
+    x--;  // x = 6 (постфиксный)
+    --x;  // x = 5 (префиксный)
+
+    int y = +10; // +10 (явно положительное)
+    int z = -10; // -10
+    std::cout << x << ' ' << y << ' ' << z << '\n';
+    return 0;
+}
+</script>
+
+<h3>Особенности целочисленной арифметики</h3>
+<aside class="c c-imp"><ul>
+<li>Целочисленное деление: <code>10 / 3 = 3</code> — дробная часть отбрасывается (округление к нулю).</li>
+<li>Остаток: <code>10 % 3 = 1</code>.</li>
+<li>Деление на ноль — UB.</li>
+<li>Переполнение: знаковых — UB, беззнаковых — по модулю.</li>
+</ul></aside>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+
+int main() {
+    std::cout << "10 / 3 = " << 10 / 3 << '\n';    // 3
+    std::cout << "-10 / 3 = " << -10 / 3 << '\n';  // -3
+    std::cout << "10 % 3 = " << 10 % 3 << '\n';    // 1
+    std::cout << "-10 % 3 = " << -10 % 3 << '\n';  // -1
+    std::cout << "10 % -3 = " << 10 % -3 << '\n';  // 1
+
+    int x = 10;
+    x += 2 * 3;  // x = x + (2 * 3) = 16
+    x -= 5 / 2;  // x = x - (5 / 2) = 14
+    x %= 4 + 1;  // x = x % (4 + 1) = 4
+    std::cout << "x = " << x << '\n';
+
+    int a = 5;
+    int b = a++ * 2;  // b = 10, a = 6 (постфиксный)
+    int c = ++a * 2;  // c = 14, a = 7 (префиксный)
+    std::cout << a << ' ' << b << ' ' << c << '\n';
+    return 0;
+}
+</script>
+<aside class="c c-tip"><p>Знак остатка совпадает со знаком <b>делимого</b>: <code>-10 % 3 == -1</code>, <code>10 % -3 == 1</code>. Всегда верно <code>(a / b) * b + a % b == a</code>. Отсюда вечный баг «проверка на нечётность»: <code>x % 2 == 1</code> не сработает для −3 (там −1). Пиши <code>x % 2 != 0</code>.</p></aside>
+<div class="qz" data-type="out" data-ans="-2 -1">
+<div class="q">Что выведет <code>std::cout &lt;&lt; -7 / 3 &lt;&lt; ' ' &lt;&lt; -7 % 3;</code>?</div>
+<div class="why">Деление округляет к нулю: −7/3 = −2.33 → <b>−2</b>. Остаток: −7 − (−2·3) = <b>−1</b>.</div>
+</div>
+
+<h3>Поразрядные (битовые) операции</h3>
+<p>Работают прямо с битами чисел: флаги, маски, низкоуровневые оптимизации. Подробно — в главе 5.</p>
+<div class="tw"><table>
+<tr><th></th><th>Описание</th></tr>
+<tr><td><code>&amp;</code></td><td>Поразрядная конъюнкция (И, AND)</td></tr>
+<tr><td><code>|</code></td><td>Поразрядная дизъюнкция (ИЛИ, OR)</td></tr>
+<tr><td><code>^</code></td><td>Исключающее ИЛИ (XOR)</td></tr>
+<tr><td><code>~</code></td><td>Поразрядное отрицание (НЕ, NOT)</td></tr>
+<tr><td><code>&lt;&lt;</code></td><td>Сдвиг влево</td></tr>
+<tr><td><code>&gt;&gt;</code></td><td>Сдвиг вправо</td></tr>
+</table></div>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+
+int main() {
+    int a = 0b1010;  // 10
+    int b = 0b1100;  // 12
+
+    std::cout << " (" << (a & b) << ")\n";  // 1000 (8)
+    std::cout << " (" << (a | b) << ")\n";  // 1110 (14)
+    std::cout << " (" << (a ^ b) << ")\n";  // 0110 (6)
+    std::cout << " (" << (~a) << ")\n";     // зависит от размера int
+    std::cout << " (" << (a << 1) << ")\n"; // 10100 (20)
+    std::cout << " (" << (a >> 1) << ")\n"; // 0101 (5)
+    return 0;
+}
+</script>
+
+<h3>Операции сравнения</h3>
+<p>Сравнивают два значения и возвращают <code>true</code> или <code>false</code> (тип <code>bool</code>).</p>
+<div class="tw"><table><tr><th><code>==</code></th><th><code>!=</code></th><th><code>&gt;</code></th><th><code>&lt;</code></th><th><code>&gt;=</code></th><th><code>&lt;=</code></th></tr>
+<tr><td>равно</td><td>не равно</td><td>больше</td><td>меньше</td><td>больше или равно</td><td>меньше или равно</td></tr></table></div>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+
+int main() {
+    int a = 10, b = 5, c = 10;
+    std::cout << std::boolalpha;  // печатать true/false вместо 1/0
+    std::cout << a << " == " << c << " : " << (a == c) << '\n';  // true
+    std::cout << a << " == " << b << " : " << (a == b) << '\n';  // false
+    std::cout << a << " != " << b << " : " << (a != b) << '\n';  // true
+    std::cout << a << " > " << b << "  : " << (a > b) << '\n';   // true
+    std::cout << b << " >= " << a << " : " << (b >= a) << '\n';  // false
+
+    bool in_range = (5 < a) && (a < 15);  // «цепочка» правильно
+    std::cout << "5 < " << a << " < 15 : " << in_range << '\n'; // true
+    return 0;
+}
+</script>
+<aside class="c c-imp"><ul>
+<li>Результат сравнения имеет тип <code>bool</code>.</li>
+<li>Сравнение чисел с плавающей точкой может быть неточным из-за округления.</li>
+<li>В C++ <b>нельзя</b> писать цепочки как в математике: <code>a &lt; b &lt; c</code>.</li>
+<li>Указатели сравниваются тем же набором операций.</li>
+</ul></aside>
+<div class="qz" data-type="out" data-ans="1">
+<div class="q">Что выведет <code>std::cout &lt;&lt; (10 &lt; 5 &lt; 3);</code>? (Компилируется!)</div>
+<div class="why">Считается слева направо: <code>10 &lt; 5</code> → <code>false</code> → приводится к <code>0</code>, потом <code>0 &lt; 3</code> → <code>true</code>, печатается <b>1</b>. Вот почему «математические цепочки» — ловушка.</div>
+</div>
+</section>
+
+<section>
+<h2><span class="sn">2.3</span> Символьные типы</h2>
+<h3>char</h3>
+<p><code>char</code> хранит символ. Символ — это 1-байтовое целое число согласно таблице <b>ASCII</b>.</p>
+<aside class="c c-imp"><p><code>char</code> всегда занимает ровно <b>1 байт</b> (обычно 8 бит). Стандарт допускает, что байт больше 8 бит (некоторые встраиваемые системы).</p></aside>
+<p>Литералы: <code>'a'</code>, <code>'1'</code>, <code>'\n'</code>, <code>'@'</code>…</p>
+<div class="tw"><table>
+<tr><th>Тип</th><th>Описание</th></tr>
+<tr><td><code>char</code></td><td>Знаковый или беззнаковый — зависит от компилятора и платформы. Всегда 1 байт.</td></tr>
+<tr><td><code>signed char</code></td><td>Всегда знаковый, от −128 до 127. Для маленьких целых чисел.</td></tr>
+<tr><td><code>unsigned char</code></td><td>Всегда беззнаковый, от 0 до 255. Для байтовых данных.</td></tr>
+</table></div>
+<p>Какой из вариантов у «просто <code>char</code>» — зависит от реализации (на x86 обычно знаковый, на ARM Linux — беззнаковый).</p>
+
+<h3>char8_t, char16_t, char32_t</h3>
+<p>Широкие символьные типы для кодировок UTF-8, UTF-16 и UTF-32 (подробнее — на <a href="https://en.cppreference.com/w/cpp/language/types" target="_blank" rel="noopener">cppreference</a>).</p>
+
+<h3>Арифметика с символами</h3>
+<p>Раз символ — это число, с <code>char</code> можно делать всю арифметику:</p>
+<p style="font-family:var(--f-mono)">'E' + ('a' - 'A') == 'e'</p>
+<aside class="c c-imp"><p>При арифметике всё, что «меньше» <code>int</code>, сначала приводится к <code>int</code> (integral promotion).</p></aside>
+<script type="text/x-cpp">
+'a' + 0;   // int
+'a' + 0l;  // long
+'a' + 0ll; // long long
+'a' + 'a'; // int
+</script>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+int main() {
+    char c = 'E';
+    std::cout << c + ('a' - 'A') << '\n';              // 101 — это int!
+    std::cout << char(c + ('a' - 'A')) << '\n';        // e
+    std::cout << static_cast<char>('7' - '0' + 'A') << '\n'; // H: цифра 7 -> 7-я буква после A
+    std::cout << '7' - '0' << '\n';                    // 7: так получают цифру из символа
+    return 0;
+}
+</script>
+<div class="qz" data-type="out" data-ans="98">
+<div class="q">Что выведет <code>std::cout &lt;&lt; 'a' + 1;</code>?</div>
+<div class="why"><code>'a'</code> (97) повышается до <code>int</code>, результат <code>98</code> — типа <code>int</code>, поэтому печатается число, а не <code>'b'</code>.</div>
+</div>
+<aside class="c c-prod"><p>Трюк <code>c - '0'</code> встречается в любом парсере: JSON, CSV, протоколах. А <code>c - 'a'</code> как индекс в массиве из 26 счётчиков — половина задач на строки на LeetCode (анаграммы, частоты букв).</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">2.4</span> Логический тип</h2>
+<p><code>bool</code> принимает всего 2 значения: <code>true</code> / <code>false</code>. Занимает 1 байт. Обычно хранит результат сравнения:</p>
+<script type="text/x-cpp">
+5 > 6;  // false
+5 < 6;  // true
+5 >= 6; // false
+5 <= 6; // true
+5 == 6; // false
+5 != 6; // true
+</script>
+<p>Логические операции:</p>
+<script type="text/x-cpp">
+5 > 6 && 5 < 6; // false (логическое «и»)
+5 > 6 || 5 < 6; // true  (логическое «или»)
+!(5 > 6);       // true  (логическое «не»)
+</script>
+<aside class="c c-imp"><p>В C++ есть и слова <code>and</code>, <code>or</code>, <code>not</code>, но это плохой стиль: они пришли из времён, когда на клавиатурах не было нужных символов. Не рекомендуется, а <b>на нашем курсе запрещено</b>.</p></aside>
+<p><code>&amp;&amp;</code> и <code>||</code> — особенные, «ленивые» (short-circuit):</p>
+<ol>
+<li>гарантируется, что левая часть вычисляется раньше правой;</li>
+<li>если слева <code>true</code>, правая часть <code>||</code> не вычисляется;</li>
+<li>если слева <code>false</code>, правая часть <code>&amp;&amp;</code> не вычисляется.</li>
+</ol>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+int main() {
+    int x = 0;
+    if (x != 0 && 10 / x > 1)  // деления на ноль не будет: правую часть не считают
+        std::cout << "big\n";
+    bool r = (5 < 6) || (++x > 0);  // ++x НЕ выполнится
+    std::cout << r << ' ' << x << '\n'; // 1 0
+    return 0;
+}
+</script>
+<h3>Арифметика с bool</h3>
+<p><code>bool</code> — разновидность целого типа: <code>true == 1</code>, <code>false == 0</code>.</p>
+<script type="text/x-cpp">
+true + 5;     // int: 6
+10l * false;  // long: 0
+</script>
+<p>И обратно: в логическом контексте ненулевое значение — <code>true</code>, ноль — <code>false</code>.</p>
+<script type="text/x-cpp">
+5 && 1; // true
+0 || 0; // false
+!-1;    // false
+</script>
+<div class="qz" data-type="single" data-ans="1">
+<div class="q">Чем отличаются <code>&amp;</code> и <code>&amp;&amp;</code>?</div>
+<ol><li>Ничем, это синонимы</li><li><code>&amp;</code> — побитовое И, вычисляет оба операнда; <code>&amp;&amp;</code> — логическое И, ленивое</li><li><code>&amp;&amp;</code> работает только с <code>bool</code>, <code>&amp;</code> — только с <code>int</code></li></ol>
+<div class="why"><code>5 &amp; 2</code> = <code>0b101 &amp; 0b010</code> = 0, а <code>5 &amp;&amp; 2</code> = <code>true</code>. Плюс <code>&amp;</code> всегда считает обе стороны, а <code>&amp;&amp;</code> может не считать правую. Это вопрос 1.4 семинара 1.</div>
+</div>
+</section>
+
+<section>
+<h2><span class="sn">2.5</span> Числа с плавающей точкой</h2>
+<p>Для хранения рациональных чисел:</p>
+<ul>
+<li><code>float</code> — одинарная точность, 4 байта, примерно [±10⁻³⁸; ±10³⁸];</li>
+<li><code>double</code> — двойная точность, 8 байт, примерно [±10⁻³⁰⁸; ±10³⁰⁸];</li>
+<li><code>long double</code> — расширенная, 12 или 16 байт, примерно [±10⁻⁴⁹³²; ±10⁴⁹³²].</li>
+</ul>
+<script type="text/x-cpp">
+0., 1.5, 3.14159;    // double
+0.f, 1.5F, 3.14159f; // float
+0.l, 1.5L, 3.14159l; // long double
+123.456e10;          // 123.456 * 10^10
+123.456e-10;         // 123.456 * 10^(-10)
+</script>
+<ul>
+<li>Работают те же арифметические операции, кроме битовых и <code>%</code>: <code>0.1 + 0.2 * 5.67 / 0.9</code>.</li>
+<li>Точность ограничена: <mark><code>0.1 + 0.2 != 0.3</code></mark> (почему — в главе 6).</li>
+<li>Числа с плавающей точкой всегда знаковые.</li>
+<li>Есть особые значения <code>+inf</code>, <code>-inf</code>, <code>nan</code>.</li>
+<li>Разные вещественные типы → менее широкий приводится к более широкому: <code>5.0 + 1.5f</code> — <code>double</code>, <code>5.0 + 1.5l</code> — <code>long double</code>.</li>
+<li>Целое + дробное → целое приводится к дробному: <code>1 + .0f</code> — <code>float</code>.</li>
+</ul>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+#include <iomanip>
+int main() {
+    std::cout << 1. / 0 << ' ' << -1. / 0 << ' ' << 0. / 0 << '\n'; // inf -inf nan
+    std::cout << std::boolalpha << (0.1 + 0.2 == 0.3) << '\n';     // false
+    std::cout << std::setprecision(17) << 0.1 + 0.2 << '\n';        // 0.30000000000000004
+    return 0;
+}
+</script>
+<aside class="c c-ub"><p>Обрати внимание: <code>1. / 0</code> (вещественное) даёт <code>inf</code>, это нормально по IEEE 754. А <code>1 / 0</code> (целочисленное) — UB, программа может упасть.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">2.6</span> Пустой тип: void</h2>
+<p><code>void</code> — тип с пустым множеством значений. Главное применение — сказать, что выражение (функция) ничего не возвращает. Подробно познакомимся в главе про функции.</p>
+</section>
+
+<section>
+<h2><span class="sn">2.7</span> Потоковое чтение данных</h2>
+<p>Читать значения из консоли помогает тот же <code>&lt;iostream&gt;</code>, только поток <code>std::cin</code> и операция <code>&gt;&gt;</code>:</p>
+<script type="text/x-cpp" data-run data-stdin="17 25">
+#include <iostream>
+int main() {
+    int x;
+    int y;
+    std::cin >> x >> y;
+    std::cout << x + y << '\n';
+    return 0;
+}
+</script>
+<p>Программа получает с консоли 2 целых числа и выводит сумму. Нажми «запустить» — слева появится поле ввода (stdin), там уже лежит <code>17 25</code>. Поменяй и запусти снова.</p>
+<aside class="c c-tip"><p><code>&gt;&gt;</code> пропускает пробелы и переводы строк, поэтому «17 25» и «17⏎25» читаются одинаково. Стрелки смотрят туда, куда текут данные: <code>cin &gt;&gt; x</code> — из консоли в <code>x</code>, <code>cout &lt;&lt; x</code> — из <code>x</code> в консоль.</p></aside>
+</section>

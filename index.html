@@ -1,0 +1,1794 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<title>Плюсы в клетку</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%226%22 fill=%22%232b4fd8%22/%3E%3Ctext x=%2216%22 y=%2222%22 font-size=%2215%22 font-family=%22monospace%22 font-weight=%22700%22 text-anchor=%22middle%22 fill=%22white%22%3EC++%3C/text%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&family=Unbounded:wght@500;600;700;800&display=swap">
+<style>
+/* Layout: тетрадь в клетку — сайдбар-оглавление слева, колонка текста ~70ch, тьютор выезжает справа.
+   Синяя шариковая ручка = акцент, жёлтый маркер = выделение, красная ручка препода = UB/ошибки. */
+:root{
+  --paper:#f6f7f2; --paper-2:#eceee6; --card:#ffffff; --grid:rgba(60,90,170,.075); --line:#d9dccf;
+  --ink:#1c2230; --ink-2:#596173; --ink-3:#8a91a1;
+  --pen:#2643c4; --pen-soft:rgba(38,67,196,.09); --marker:#ffe24a; --marker-soft:rgba(255,226,74,.42);
+  --red:#cf3b31; --red-soft:rgba(207,59,49,.08); --green:#1d8655; --green-soft:rgba(29,134,85,.1);
+  --violet:#7a46c8; --violet-soft:rgba(122,70,200,.09);
+  --code-bg:#fbfbf7; --code-ink:#1c2230;
+  --tk-kw:#2643c4; --tk-type:#0f7a72; --tk-str:#a3461d; --tk-num:#8a3fc0; --tk-com:#8a91a1; --tk-pre:#b0306a; --tk-def:#1c2230;
+  --shadow:0 1px 0 rgba(28,34,48,.06),0 6px 22px -12px rgba(28,34,48,.25);
+  --f-display:"Unbounded","Golos Text",system-ui,sans-serif;
+  --f-body:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --side:272px; --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --paper:#12161f; --paper-2:#181d28; --card:#1a1f2b; --grid:rgba(130,160,255,.06); --line:#2a3142;
+  --ink:#e6e8ee; --ink-2:#a3aaba; --ink-3:#6f778a;
+  --pen:#8fa3ff; --pen-soft:rgba(143,163,255,.12); --marker:#e9cf4f; --marker-soft:rgba(233,207,79,.13);
+  --red:#ff7b6f; --red-soft:rgba(255,123,111,.1); --green:#4fc98f; --green-soft:rgba(79,201,143,.12);
+  --violet:#b897ff; --violet-soft:rgba(184,151,255,.12);
+  --code-bg:#151a24; --code-ink:#e6e8ee;
+  --tk-kw:#8fa3ff; --tk-type:#5fd0c4; --tk-str:#f0a274; --tk-num:#c99bff; --tk-com:#6f778a; --tk-pre:#ff8fbf; --tk-def:#e6e8ee;
+  --shadow:0 1px 0 rgba(0,0,0,.3),0 8px 26px -12px rgba(0,0,0,.6);
+  color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --paper:#12161f; --paper-2:#181d28; --card:#1a1f2b; --grid:rgba(130,160,255,.06); --line:#2a3142;
+  --ink:#e6e8ee; --ink-2:#a3aaba; --ink-3:#6f778a;
+  --pen:#8fa3ff; --pen-soft:rgba(143,163,255,.12); --marker:#e9cf4f; --marker-soft:rgba(233,207,79,.13);
+  --red:#ff7b6f; --red-soft:rgba(255,123,111,.1); --green:#4fc98f; --green-soft:rgba(79,201,143,.12);
+  --violet:#b897ff; --violet-soft:rgba(184,151,255,.12);
+  --code-bg:#151a24; --code-ink:#e6e8ee;
+  --tk-kw:#8fa3ff; --tk-type:#5fd0c4; --tk-str:#f0a274; --tk-num:#c99bff; --tk-com:#6f778a; --tk-pre:#ff8fbf; --tk-def:#e6e8ee;
+  --shadow:0 1px 0 rgba(0,0,0,.3),0 8px 26px -12px rgba(0,0,0,.6);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+img{max-width:100%}
+body{
+  margin:0; background:var(--paper); color:var(--ink); font:16px/1.6 var(--f-body);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:22px 22px; background-attachment:fixed;
+}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:60;background:var(--paper)}
+a{color:var(--pen)}
+button{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--pen);outline-offset:2px;border-radius:4px}
+code,kbd,pre,.mono{font-family:var(--f-mono)}
+code{font-size:.88em;background:var(--pen-soft);padding:.08em .32em;border-radius:4px}
+mark{background:linear-gradient(transparent 38%,var(--marker-soft) 38%,var(--marker-soft) 92%,transparent 92%);color:inherit;padding:0 .1em}
+h1,h2,h3{font-family:var(--f-display);font-weight:600;line-height:1.2;text-wrap:balance;letter-spacing:-.01em}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ---------- shell ---------- */
+.top{
+  position:sticky; top:env(safe-area-inset-top,0px); z-index:50; display:flex; align-items:center; gap:12px;
+  padding-block:10px; padding-left:max(16px,env(safe-area-inset-left,0px)); padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:color-mix(in srgb,var(--paper) 88%,transparent); backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+}
+.logo{display:flex;align-items:baseline;gap:8px;text-decoration:none;color:var(--ink);font-family:var(--f-display);font-weight:700;font-size:17px;white-space:nowrap}
+.logo b{color:var(--pen);font-weight:800}
+.logo small{font-family:var(--f-body);font-weight:500;font-size:12px;color:var(--ink-3)}
+.top .sp{flex:1}
+.tbtn{text-decoration:none;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer;white-space:nowrap}
+.tbtn:hover{border-color:var(--pen)}
+.tbtn.primary{background:var(--pen);border-color:var(--pen);color:var(--paper)}
+.tbtn svg{width:16px;height:16px}
+.menu-btn{display:none}
+.xp{font:600 13px var(--f-mono);color:var(--ink-2);display:flex;align-items:center;gap:8px}
+.xp .bar{width:90px;height:6px;border-radius:9px;background:var(--paper-2);overflow:hidden}
+.xp .bar i{display:block;height:100%;background:var(--pen);border-radius:9px;transition:width .4s}
+
+.shell{display:grid;grid-template-columns:var(--side) minmax(0,1fr);min-height:calc(100% - 57px)}
+.side{
+  position:sticky; top:calc(57px + env(safe-area-inset-top,0px)); height:calc(100vh - 57px - env(safe-area-inset-top,0px)); overflow:auto;
+  border-right:1px solid var(--line); background:color-mix(in srgb,var(--paper) 92%,transparent);
+  padding-block:14px 40px; padding-left:max(12px,env(safe-area-inset-left,0px)); padding-right:10px; font-size:14px;
+}
+.side h4{font:600 11px var(--f-body);text-transform:uppercase;letter-spacing:.09em;color:var(--ink-3);margin:18px 8px 6px}
+.side a{display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:8px;color:var(--ink);text-decoration:none;line-height:1.3}
+.side a:hover{background:var(--pen-soft)}
+.side a.on{background:var(--pen);color:var(--paper)}
+.side a.on .num{color:inherit;opacity:.8}
+.side .num{font:500 12px var(--f-mono);color:var(--ink-3);min-width:20px;padding-top:1px}
+.side .dot{margin-left:auto;flex:none;width:8px;height:8px;border-radius:50%;border:1.5px solid var(--ink-3);margin-top:5px}
+.side .dot.half{background:linear-gradient(90deg,var(--pen) 50%,transparent 50%);border-color:var(--pen)}
+.side .dot.full{background:var(--green);border-color:var(--green)}
+.side .badge{margin-left:auto;font:600 11px var(--f-mono);background:var(--marker);color:#1c2230;border-radius:9px;padding:0 6px}
+
+main{min-width:0;padding-block:28px 120px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.col{max-width:780px;margin:0 auto}
+.wide{max-width:1180px;margin:0 auto}
+
+@media (max-width:900px){
+  .shell{grid-template-columns:minmax(0,1fr)}
+  .side{position:fixed;left:0;top:calc(57px + env(safe-area-inset-top,0px));bottom:0;width:min(86vw,320px);z-index:45;transform:translateX(-105%);transition:transform .25s;background:var(--paper);box-shadow:var(--shadow);height:auto}
+  .side.open{transform:none}
+  .menu-btn{display:inline-flex}
+  .xp .bar{display:none}
+  .logo small{display:none}
+}
+@media (max-width:560px){ .top .lbl{display:none} }
+
+/* ---------- article ---------- */
+.eyebrow{font:600 12px var(--f-mono);letter-spacing:.06em;color:var(--pen);text-transform:uppercase}
+.ch-head h1{font-size:clamp(28px,4.4vw,42px);margin:6px 0 10px}
+.ch-head .meta{display:flex;flex-wrap:wrap;gap:8px 16px;color:var(--ink-2);font-size:14px}
+.ch-head .lead{font-size:18px;color:var(--ink-2);margin:12px 0 0}
+.toc-mini{display:flex;flex-wrap:wrap;gap:6px;margin:18px 0 6px}
+.toc-mini a{font-size:13px;border:1px solid var(--line);background:var(--card);padding:3px 10px;border-radius:999px;text-decoration:none;color:var(--ink-2)}
+.toc-mini a:hover{border-color:var(--pen);color:var(--pen)}
+article section{margin-top:40px;scroll-margin-top:80px}
+article h2{font-size:24px;margin:0 0 12px;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+article h2 .sn{font:600 14px var(--f-mono);color:var(--pen)}
+article h3{font-size:18px;margin:26px 0 8px}
+article p,article li{max-width:70ch}
+article ul,article ol{padding-left:1.3em}
+article li{margin:4px 0}
+article table{border-collapse:collapse;font-size:14.5px;margin:12px 0}
+.tw{overflow-x:auto;max-width:100%}
+article th,article td{border:1px solid var(--line);padding:6px 10px;text-align:left;vertical-align:top}
+article th{background:var(--paper-2);font-weight:600}
+.sec-tools{display:inline-flex;gap:6px;margin-left:auto}
+.ai-mini{font:500 12px var(--f-body);border:1px dashed var(--violet);color:var(--violet);background:transparent;border-radius:999px;padding:2px 9px;cursor:pointer}
+.ai-mini:hover{background:var(--violet-soft)}
+.ai-out{margin:10px 0;padding:12px 14px;border-radius:var(--r);background:var(--violet-soft);border:1px solid color-mix(in srgb,var(--violet) 30%,transparent);font-size:15px}
+.ai-out .who{font:600 11px var(--f-mono);color:var(--violet);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+
+/* callouts */
+.c{position:relative;margin:18px 0;padding:12px 16px 12px 18px;border-radius:var(--r);background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow)}
+.c>:first-child{margin-top:0}.c>:last-child{margin-bottom:0}
+.c::before{content:attr(data-l);display:block;font:700 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:6px}
+.c-def{border-left:4px solid var(--pen)} .c-def::before{content:"Определение";color:var(--pen)}
+.c-imp{background:linear-gradient(var(--marker-soft),var(--marker-soft)),var(--card);border-color:color-mix(in srgb,var(--marker) 70%,var(--line))} .c-imp::before{content:"Важно";color:var(--ink)}
+.c-ub{border-left:4px solid var(--red);background:linear-gradient(var(--red-soft),var(--red-soft)),var(--card)} .c-ub::before{content:"⚠ UB / ловушка";color:var(--red)}
+.c-hist{background:var(--paper-2);box-shadow:none} .c-hist::before{content:"Историческая справка";color:var(--ink-3)}
+.c-prod{border-left:4px solid var(--green)} .c-prod::before{content:"А в индустрии";color:var(--green)}
+.c-tip{border-left:4px solid var(--ink-3)} .c-tip::before{content:"Лайфхак";color:var(--ink-2)}
+.c-meme{background:var(--card);border:2px dashed var(--ink-3);box-shadow:none;transform:rotate(-.4deg);font-size:15px}
+.c-meme::before{content:"мем-пауза";color:var(--ink-3)}
+.c[data-l]::before{content:attr(data-l)}
+
+/* code blocks */
+.code{position:relative;margin:14px 0;border:1px solid var(--line);border-radius:var(--r);background:var(--code-bg);box-shadow:var(--shadow);overflow:hidden}
+.code pre{margin:0;padding:12px 14px;overflow-x:auto;font:13.5px/1.55 var(--f-mono);color:var(--code-ink);tab-size:4}
+.code .bar{display:flex;align-items:center;gap:6px;padding:4px 6px 4px 12px;border-bottom:1px solid var(--line);background:var(--paper-2);font:500 11px var(--f-mono);color:var(--ink-3)}
+.code .bar .sp{flex:1}
+.code .bar button{border:0;background:transparent;border-radius:6px;padding:3px 8px;font:600 12px var(--f-body);cursor:pointer;color:var(--ink-2)}
+.code .bar button:hover{background:var(--pen-soft);color:var(--pen)}
+.code .bar button.run{color:var(--green)}
+.code .bar button.run:hover{background:var(--green-soft)}
+.code.ce .bar{background:var(--red-soft)}
+.code.ce .bar .tag{color:var(--red)}
+.cm-s-k .cm-keyword,.tk-kw{color:var(--tk-kw);font-weight:600}
+.cm-s-k .cm-type,.cm-s-k .cm-variable-3,.tk-type{color:var(--tk-type)}
+.cm-s-k .cm-string,.cm-s-k .cm-string-2,.tk-str{color:var(--tk-str)}
+.cm-s-k .cm-number,.cm-s-k .cm-atom,.tk-num{color:var(--tk-num)}
+.cm-s-k .cm-comment,.tk-com{color:var(--tk-com);font-style:italic}
+.cm-s-k .cm-meta,.tk-pre{color:var(--tk-pre)}
+.cm-s-k .cm-def{color:var(--tk-def);font-weight:600}
+.cm-s-k .cm-operator{color:var(--ink-2)}
+.inline-run{border-top:1px dashed var(--line)}
+.inline-run .io{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0}
+.inline-run textarea{width:100%;min-height:64px;border:0;border-right:1px dashed var(--line);background:transparent;color:var(--ink);font:13px var(--f-mono);padding:8px 12px;resize:vertical}
+.out{margin:0;padding:8px 12px;font:13px/1.5 var(--f-mono);white-space:pre-wrap;word-break:break-word;min-height:64px;max-height:360px;overflow:auto}
+.out .err{color:var(--red)} .out .dim{color:var(--ink-3)} .out .ok{color:var(--green)}
+@media (max-width:560px){.inline-run .io{grid-template-columns:minmax(0,1fr)} .inline-run textarea{border-right:0;border-bottom:1px dashed var(--line)}}
+
+/* quiz */
+.quiz{margin:20px 0;padding:14px 16px;border-radius:var(--r);background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow)}
+.quiz .qh{display:flex;gap:8px;align-items:center;font:700 11px var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--pen);margin-bottom:6px}
+.quiz .qh .st{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:600}
+.quiz .qq{font-weight:500}
+.quiz .qq p{margin:4px 0}
+.opts{display:grid;gap:6px;margin:10px 0}
+.opt{display:flex;gap:10px;align-items:flex-start;text-align:left;border:1.5px solid var(--line);background:var(--paper);border-radius:8px;padding:8px 12px;cursor:pointer;font-size:15px;line-height:1.4}
+.opt:hover{border-color:var(--pen)}
+.opt .k{font:600 12px var(--f-mono);color:var(--ink-3);padding-top:2px}
+.opt.sel{border-color:var(--pen);background:var(--pen-soft)}
+.opt.right{border-color:var(--green);background:var(--green-soft)}
+.opt.wrong{border-color:var(--red);background:var(--red-soft)}
+.opt code{background:transparent;padding:0}
+.qrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.qin{flex:1;min-width:160px;border:1.5px solid var(--line);background:var(--paper);border-radius:8px;padding:8px 10px;font:14px var(--f-mono);color:var(--ink)}
+textarea.qin{min-height:70px;resize:vertical;font-family:var(--f-mono)}
+.qin:focus{border-color:var(--pen);outline:none}
+.btn{border:1.5px solid var(--pen);background:var(--pen);color:var(--paper);border-radius:8px;padding:7px 14px;font:600 14px var(--f-body);cursor:pointer}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--pen)}
+.btn.ghost:hover{background:var(--pen-soft)}
+.btn.ok{background:var(--green);border-color:var(--green)}
+.btn.warn{background:transparent;border-color:var(--red);color:var(--red)}
+.btn.ai{background:transparent;border-color:var(--violet);color:var(--violet)}
+.btn.ai:hover{background:var(--violet-soft)}
+.btn:disabled{opacity:.5;cursor:default}
+.btn.sm{padding:4px 10px;font-size:13px}
+.why{margin-top:10px;padding:10px 12px;border-radius:8px;background:var(--paper-2);font-size:15px}
+.why.good{background:var(--green-soft)} .why.bad{background:var(--red-soft)}
+.why .v{font-weight:700;margin-right:6px}
+
+/* viz common */
+.viz{margin:20px 0;padding:14px;border-radius:var(--r);background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow)}
+.viz .vh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.viz .vh b{font:700 11px var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--violet)}
+.viz .vh .sp{flex:1}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex-wrap:wrap}
+.seg button{border:0;background:var(--paper);padding:4px 9px;font:500 12px var(--f-mono);cursor:pointer;border-right:1px solid var(--line)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--pen);color:var(--paper)}
+.bitrow{display:flex;flex-wrap:wrap;gap:3px;font-family:var(--f-mono)}
+.bit{width:28px;height:34px;border:1.5px solid var(--line);border-radius:6px;background:var(--paper);display:grid;place-items:center;font:600 15px var(--f-mono);cursor:pointer;user-select:none;position:relative}
+.bit:hover{border-color:var(--pen)}
+.bit.one{background:var(--pen);color:var(--paper);border-color:var(--pen)}
+.bit.sign{box-shadow:inset 0 -3px 0 var(--red)}
+.bit.exp.one{background:var(--green);border-color:var(--green)}
+.bit.exp{border-color:color-mix(in srgb,var(--green) 50%,var(--line))}
+.bit.man.one{background:var(--violet);border-color:var(--violet)}
+.bit.man{border-color:color-mix(in srgb,var(--violet) 40%,var(--line))}
+.bit.gap{margin-left:8px}
+.bitrow.sm .bit{width:21px;height:28px;font-size:12px;border-radius:5px}
+.bitrow.sm .bit.gap{margin-left:5px}
+.bit i{position:absolute;top:-15px;font:500 9px var(--f-mono);color:var(--ink-3);font-style:normal}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font:14px var(--f-mono);margin-top:12px}
+.kv dt{color:var(--ink-3)} .kv dd{margin:0;word-break:break-all}
+.flag{display:inline-block;font:700 11px var(--f-mono);padding:1px 7px;border-radius:9px;background:var(--red-soft);color:var(--red)}
+.flag.okf{background:var(--green-soft);color:var(--green)}
+.vsmall{font-size:13px;color:var(--ink-2)}
+
+/* tracer */
+.tr{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:12px}
+@media (max-width:760px){.tr{grid-template-columns:minmax(0,1fr)}}
+.tr-code{font:13px/1.65 var(--f-mono);background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:8px 0;overflow-x:auto;counter-reset:ln}
+.tr-code div{padding:0 12px 0 0;white-space:pre;display:flex}
+.tr-code div::before{counter-increment:ln;content:counter(ln);width:30px;flex:none;text-align:right;padding-right:10px;color:var(--ink-3)}
+.tr-code div.cur{background:var(--marker-soft)}
+.tr-code div.cur::before{content:"▶";color:var(--pen)}
+.tr-mem{position:relative;display:grid;gap:10px;align-content:start;min-width:0}
+.tr-col h5{margin:0 0 4px;font:700 10.5px var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--ink-3)}
+.frame{border:1.5px solid var(--line);border-radius:8px;background:var(--paper);margin-bottom:6px;overflow:hidden}
+.frame .fn{font:600 12px var(--f-mono);padding:3px 8px;background:var(--paper-2);border-bottom:1px solid var(--line);display:flex;justify-content:space-between}
+.frame.top-f{border-color:var(--pen)}
+.frame.top-f .fn{background:var(--pen-soft);color:var(--pen)}
+.var{display:grid;grid-template-columns:minmax(0,auto) minmax(0,1fr) auto;gap:8px;align-items:center;padding:3px 8px;font:13px var(--f-mono);border-top:1px dashed var(--line)}
+.var:first-of-type{border-top:0}
+.var .n{font-weight:600}.var .t{color:var(--ink-3);font-size:11px}
+.var .v{justify-self:end;padding:0 6px;border-radius:4px;min-width:28px;text-align:center}
+.var .a{color:var(--ink-3);font-size:10.5px}
+.var.chg .v{background:var(--marker);color:#1c2230}
+.var.dead{opacity:.45;text-decoration:line-through}
+.heapb{border:1.5px solid var(--line);border-radius:8px;background:var(--paper);margin-bottom:6px;padding:4px 8px;font:12px var(--f-mono)}
+.heapb.freed{opacity:.4;border-style:dashed}
+.heapb .hl{display:flex;justify-content:space-between;color:var(--ink-2);margin-bottom:3px}
+.cells{display:flex;flex-wrap:wrap;gap:2px}
+.cell{min-width:30px;height:28px;padding:0 4px;border:1px solid var(--line);border-radius:4px;display:grid;place-items:center;font:12px var(--f-mono);background:var(--card);position:relative}
+.cell.chg{background:var(--marker);color:#1c2230}
+.cell.term{color:var(--red)}
+.cell sub{position:absolute;bottom:-13px;font-size:9px;color:var(--ink-3)}
+.cells.idx{margin-bottom:12px}
+.tr-out{font:13px var(--f-mono);background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;white-space:pre-wrap;min-height:30px}
+.tr-note{font-size:14.5px;padding:8px 12px;border-radius:8px;background:var(--pen-soft);margin-top:8px;min-height:2.6em}
+.tr-ctl{display:flex;gap:6px;align-items:center;margin-top:10px;flex-wrap:wrap}
+.tr-ctl .stepn{font:12px var(--f-mono);color:var(--ink-3);margin-left:auto}
+.tr-svg{position:absolute;inset:0;pointer-events:none;overflow:visible}
+.tr-svg path{fill:none;stroke:var(--pen);stroke-width:1.6}
+.tr-svg path.dang{stroke:var(--red);stroke-dasharray:4 3}
+
+/* layout widgets */
+.bytes{display:flex;flex-wrap:wrap;gap:2px;margin:8px 0}
+.byte{width:26px;height:30px;border-radius:4px;display:grid;place-items:center;font:600 10px var(--f-mono);color:var(--paper)}
+.byte.pad{background:repeating-linear-gradient(45deg,var(--paper-2),var(--paper-2) 4px,var(--line) 4px,var(--line) 8px);color:var(--ink-3)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;font:12px var(--f-mono)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:12px;height:12px;border-radius:3px;display:inline-block}
+.fields{display:grid;gap:4px;margin:8px 0}
+.fieldrow{display:flex;gap:6px;align-items:center;font:13px var(--f-mono)}
+.fieldrow button{border:1px solid var(--line);background:var(--paper);border-radius:6px;width:26px;height:24px;cursor:pointer}
+.mx{display:grid;gap:3px;margin:8px 0}
+.mx div{aspect-ratio:1;max-width:44px;border-radius:5px;border:1px solid var(--line);display:grid;place-items:center;font:600 13px var(--f-mono);background:var(--paper);transition:background .2s}
+.mx div.on{background:var(--pen-soft);border-color:var(--pen)}
+.mx div.now{background:var(--marker);color:#1c2230;border-color:var(--marker)}
+
+/* practice */
+.pgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start}
+@media (max-width:980px){.pgrid{grid-template-columns:minmax(0,1fr)}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;min-width:0}
+.panel h1{font-size:24px;margin:4px 0 10px}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font:600 11px var(--f-mono);padding:2px 8px;border-radius:999px;background:var(--paper-2);color:var(--ink-2)}
+.tag.easy{background:var(--green-soft);color:var(--green)}
+.tag.medium{background:var(--marker-soft);color:var(--ink)}
+.tag.hard{background:var(--red-soft);color:var(--red)}
+.tag.done{background:var(--green);color:var(--paper)}
+.tag.sem{background:var(--pen-soft);color:var(--pen)}
+.edwrap{border:1px solid var(--line);border-radius:8px;overflow:hidden;background:var(--code-bg)}
+.edwrap .CodeMirror{height:auto;min-height:260px;max-height:62vh;font:13.5px/1.55 var(--f-mono);background:var(--code-bg);color:var(--code-ink)}
+.ed-tools{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.tests{display:grid;gap:6px;margin-top:10px}
+.test{border:1px solid var(--line);border-radius:8px;padding:6px 10px;font:12.5px var(--f-mono);background:var(--paper)}
+.test.pass{border-color:var(--green);background:var(--green-soft)}
+.test.fail{border-color:var(--red);background:var(--red-soft)}
+.test summary{cursor:pointer}
+.test pre{margin:6px 0 0;white-space:pre-wrap;word-break:break-word}
+.tlist{display:grid;gap:8px}
+.titem{display:flex;gap:12px;align-items:center;padding:10px 14px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);text-decoration:none;color:var(--ink)}
+.titem:hover{border-color:var(--pen)}
+.titem .tt{font-weight:600}
+.titem .ts{font-size:13px;color:var(--ink-2)}
+.titem .chk{width:22px;height:22px;flex:none;border-radius:50%;border:2px solid var(--line);display:grid;place-items:center;font-size:13px;color:var(--paper)}
+.titem .chk.on{background:var(--green);border-color:var(--green)}
+.filters{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.filters select,.filters input{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 10px;font:14px var(--f-body)}
+
+/* home */
+.hero{padding:10px 0 6px}
+.hero h1{font-size:clamp(30px,5vw,52px);margin:8px 0 12px;max-width:16ch}
+.hero h1 em{font-style:normal;background:linear-gradient(transparent 55%,var(--marker) 55%,var(--marker) 92%,transparent 92%);padding:0 .08em}
+.hero p{font-size:18px;color:var(--ink-2);max-width:56ch}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:22px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px 14px}
+.stat b{display:block;font:700 26px var(--f-display);font-variant-numeric:tabular-nums}
+.stat span{font-size:13px;color:var(--ink-2)}
+.map{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:10px}
+.mcard{display:flex;flex-direction:column;gap:4px;padding:12px 14px;background:var(--card);border:1px solid var(--line);border-radius:var(--r);text-decoration:none;color:var(--ink);min-height:92px}
+.mcard:hover{border-color:var(--pen);box-shadow:var(--shadow)}
+.mcard .n{font:600 12px var(--f-mono);color:var(--pen)}
+.mcard .t{font-weight:600;line-height:1.3}
+.mcard .p{margin-top:auto;height:4px;border-radius:4px;background:var(--paper-2);overflow:hidden}
+.mcard .p i{display:block;height:100%;background:var(--green)}
+.grp-h{margin:30px 0 4px;font-size:20px}
+
+/* flashcards */
+.fc-wrap{perspective:1200px;margin:20px auto;max-width:620px}
+.fc{position:relative;min-height:280px;transform-style:preserve-3d;transition:transform .45s;cursor:pointer}
+.fc.flip{transform:rotateY(180deg)}
+.fc>div{position:absolute;inset:0;backface-visibility:hidden;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:22px;display:flex;flex-direction:column;overflow:auto}
+.fc .back{transform:rotateY(180deg)}
+.fc .lab{font:700 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3)}
+.fc .front .body{font:600 21px/1.35 var(--f-display);margin:auto 0;text-wrap:balance}
+.fc .back .body{font-size:16px;margin:10px 0 auto}
+.fc-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;max-width:620px;margin:0 auto}
+@media (prefers-reduced-motion:reduce){.fc{transition:none}}
+
+/* tutor drawer */
+.drawer{position:fixed;top:calc(57px + env(safe-area-inset-top,0px));right:0;bottom:0;width:min(440px,100vw);z-index:55;background:var(--card);border-left:1px solid var(--line);box-shadow:var(--shadow);display:flex;flex-direction:column;transform:translateX(105%);transition:transform .25s;padding-right:env(safe-area-inset-right,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+.drawer.open{transform:none}
+.drawer:not(.open){visibility:hidden}
+html{overflow-x:clip}
+.drawer .dh{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.drawer .dh b{font-family:var(--f-display);font-size:15px}
+.drawer .ctx{font-size:12px;color:var(--ink-3);padding:6px 14px;border-bottom:1px dashed var(--line)}
+.msgs{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
+.msg{max-width:92%;padding:9px 12px;border-radius:12px;font-size:14.5px;line-height:1.5;white-space:pre-wrap;word-break:break-word}
+.msg.u{align-self:flex-end;background:var(--pen);color:var(--paper);border-bottom-right-radius:4px}
+.msg.a{align-self:flex-start;background:var(--paper-2);border-bottom-left-radius:4px;white-space:normal}
+.msg.a pre,.ai-out pre{background:var(--code-bg);border:1px solid var(--line);border-radius:6px;padding:8px;overflow-x:auto;font-size:12.5px;white-space:pre}
+.msg.a p{margin:.3em 0}
+.md-h,.msg.a .md-h{font-weight:700;margin:.9em 0 .25em}
+.chips{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 8px}
+.chips button{border:1px solid var(--line);background:var(--paper);border-radius:999px;padding:3px 10px;font-size:12.5px;cursor:pointer}
+.chips button:hover{border-color:var(--violet);color:var(--violet)}
+.compose{display:flex;gap:8px;padding:10px 14px;border-top:1px solid var(--line)}
+.compose textarea{flex:1;resize:none;height:44px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);font:14px var(--f-body);padding:8px 10px}
+
+/* toast + misc */
+.toast{position:fixed;left:50%;bottom:calc(20px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--paper);padding:10px 16px;border-radius:999px;font-size:14px;z-index:80;box-shadow:var(--shadow);max-width:calc(100vw - 32px)}
+.empty{padding:30px;text-align:center;color:var(--ink-2)}
+.spin{display:inline-block;width:12px;height:12px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp 0.8s linear infinite;vertical-align:-1px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation-duration:3s}}
+.next-prev{display:flex;justify-content:space-between;gap:10px;margin-top:50px;flex-wrap:wrap}
+.next-prev a{flex:1;min-width:200px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r);background:var(--card);text-decoration:none;color:var(--ink)}
+.next-prev a:hover{border-color:var(--pen)}
+.next-prev small{display:block;color:var(--ink-3);font-size:12px}
+.chapter-practice{margin-top:44px;padding:16px;border-radius:var(--r);border:1.5px solid var(--pen);background:var(--pen-soft)}
+.chapter-practice h3{margin:0 0 8px}
+.read-mark{display:flex;align-items:center;gap:10px;margin-top:30px}
+.compiler-state{font:12px var(--f-mono);color:var(--ink-3)}
+.exam-q{margin:16px 0}
+.timer{font:700 20px var(--f-mono);font-variant-numeric:tabular-nums}
+.timer.low{color:var(--red)}
+.grade{font:800 46px var(--f-display)}
+.CodeMirror{font-family:var(--f-mono)}
+
+/* CodeMirror 5 core (inlined: CSP allows only scripts from CDN) */
+.CodeMirror{font-family:var(--f-mono);height:300px;color:var(--code-ink);direction:ltr;position:relative;overflow:hidden;background:var(--code-bg)}
+.CodeMirror-lines{padding:6px 0;cursor:text;min-height:1px}
+.CodeMirror pre.CodeMirror-line,.CodeMirror pre.CodeMirror-line-like{padding:0 8px;border-radius:0;border-width:0;background:transparent;font-family:inherit;font-size:inherit;margin:0;white-space:pre;word-wrap:normal;line-height:inherit;color:inherit;z-index:2;position:relative;overflow:visible;-webkit-tap-highlight-color:transparent;font-variant-ligatures:contextual}
+.CodeMirror-scrollbar-filler,.CodeMirror-gutter-filler{background-color:var(--code-bg)}
+.CodeMirror-gutters{border-right:1px solid var(--line);background-color:var(--paper-2);white-space:nowrap;position:absolute;left:0;top:0;min-height:100%;z-index:3}
+.CodeMirror-linenumber{padding:0 6px 0 5px;min-width:20px;text-align:right;color:var(--ink-3);white-space:nowrap}
+.CodeMirror-cursor{border-left:2px solid var(--pen);border-right:none;width:0;position:absolute;pointer-events:none}
+.cm-tab{display:inline-block;text-decoration:inherit}
+div.CodeMirror span.CodeMirror-matchingbracket{color:var(--green);font-weight:700}
+div.CodeMirror span.CodeMirror-nonmatchingbracket{color:var(--red)}
+.CodeMirror-activeline-background{background:var(--pen-soft)}
+.CodeMirror-scroll{overflow:scroll!important;margin-bottom:-50px;margin-right:-50px;padding-bottom:50px;height:100%;outline:none;position:relative;z-index:0}
+.CodeMirror-sizer{position:relative;border-right:50px solid transparent}
+.CodeMirror-vscrollbar,.CodeMirror-hscrollbar,.CodeMirror-scrollbar-filler,.CodeMirror-gutter-filler{position:absolute;z-index:6;display:none;outline:none}
+.CodeMirror-vscrollbar{right:0;top:0;overflow-x:hidden;overflow-y:scroll}
+.CodeMirror-hscrollbar{bottom:0;left:0;overflow-y:hidden;overflow-x:scroll}
+.CodeMirror-scrollbar-filler{right:0;bottom:0}
+.CodeMirror-gutter-filler{left:0;bottom:0}
+.CodeMirror-gutter{white-space:normal;height:100%;display:inline-block;vertical-align:top;margin-bottom:-50px}
+.CodeMirror-gutter-wrapper{position:absolute;z-index:4;background:none!important;border:none!important}
+.CodeMirror-gutter-background{position:absolute;top:0;bottom:0;z-index:4}
+.CodeMirror-gutter-elt{position:absolute;cursor:default;z-index:4}
+.CodeMirror-gutter-wrapper ::selection{background-color:transparent}
+.CodeMirror-wrap pre.CodeMirror-line{word-wrap:break-word;white-space:pre-wrap;word-break:normal}
+.CodeMirror-linebackground{position:absolute;left:0;right:0;top:0;bottom:0;z-index:0}
+.CodeMirror-linewidget{position:relative;z-index:2;padding:.1px}
+.CodeMirror-code{outline:none}
+.CodeMirror-scroll,.CodeMirror-sizer,.CodeMirror-gutter,.CodeMirror-gutters,.CodeMirror-linenumber{box-sizing:content-box}
+.CodeMirror-measure{position:absolute;width:100%;height:0;overflow:hidden;visibility:hidden}
+.CodeMirror-measure pre{position:static}
+div.CodeMirror-cursors{visibility:hidden;position:relative;z-index:3}
+div.CodeMirror-dragcursors{visibility:visible}
+.CodeMirror-focused div.CodeMirror-cursors{visibility:visible}
+.CodeMirror-selected{background:var(--marker-soft)}
+.CodeMirror-focused .CodeMirror-selected{background:var(--marker-soft)}
+.CodeMirror-line::selection,.CodeMirror-line>span::selection,.CodeMirror-line>span>span::selection{background:var(--marker-soft)}
+.cm-force-border{padding-right:.1px}
+.cm-tab-wrap-hack:after{content:''}
+span.CodeMirror-selectedtext{background:none}
+.cm-errline{background:var(--red-soft)}
+
+</style>
+</head>
+<body>
+<header class="top">
+  <button type="button" class="tbtn menu-btn" id="menu" aria-label="Оглавление"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+  <a class="logo" href="#home">Плюсы <b>в клетку</b><small>интерактивный «Великий конспект»</small></a>
+  <span class="sp"></span>
+  <span class="xp" title="Общий прогресс: главы + задачи"><span class="bar"><i id="xpbar" style="width:0"></i></span><span id="xptext">0%</span></span>
+  <span class="vsmall lbl" id="sync" title="Прогресс хранится в этом браузере (localStorage)">прогресс в браузере</span>
+  <a class="tbtn" href="#sandbox"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span class="lbl">Песочница</span></a>
+  <button type="button" class="tbtn primary" id="tutor-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4z"/></svg><span class="lbl">Тьютор</span></button>
+</header>
+<div class="shell">
+  <nav class="side" id="side" aria-label="Оглавление"></nav>
+  <main id="main"><div class="col empty"><span class="spin"></span> загружаю конспект…</div></main>
+</div>
+<aside class="drawer" id="drawer" aria-label="ИИ-тьютор">
+  <div class="dh"><b>✦ ИИ-тьютор</b><span class="sp" style="flex:1"></span><button type="button" class="btn ghost sm" id="tstop" hidden>стоп</button><button type="button" class="btn ghost sm" id="tclear" title="Начать новый разговор">новый чат</button><button type="button" class="btn ghost sm" id="tclose" aria-label="Закрыть">✕</button></div>
+  <div class="ctx" id="tctx">Контекст: общий вопрос</div>
+  <div class="msgs" id="msgs"><div class="msg a"><p>Привет! Я вижу, какую главу или задачу ты сейчас открыл. Спрашивай что угодно по C++: «почему тут UB», «объясни указатели как пятилетке», «проверь мой код». Могу сам запускать код, чтобы проверить себя.</p></div></div>
+  <div class="chips" id="chips">
+    <button type="button">Объясни проще</button>
+    <button type="button">Пример из реальной жизни</button>
+    <button type="button">Задай мне 3 вопроса по теме</button>
+    <button type="button">Где тут подвох на экзамене?</button>
+  </div>
+  <form class="compose" id="tform"><textarea id="tin" placeholder="Спроси про C++…" aria-label="Сообщение тьютору"></textarea><button class="btn" type="submit">→</button></form>
+</aside>
+<script src="vendor/codemirror.min.js"></script>
+<script>
+/* Лёгкий режим C++ и runMode для CodeMirror 5 (чтобы платформа работала без CDN). */
+(function () {
+  if (!window.CodeMirror) return;
+  const words = s => new Set(s.split(' '));
+  const KW = words('alignas alignof and asm break case catch class concept const consteval constexpr constinit const_cast continue co_await co_return co_yield decltype default delete do dynamic_cast else enum explicit export extern for friend goto if inline mutable namespace new noexcept not operator or private protected public register reinterpret_cast requires return sizeof static static_assert static_cast struct switch template this thread_local throw try typedef typeid typename union using virtual volatile while xor override final');
+  const TY = words('auto bool char char8_t char16_t char32_t double float int long short signed unsigned void wchar_t size_t ptrdiff_t int8_t int16_t int32_t int64_t uint8_t uint16_t uint32_t uint64_t std string string_view vector ostream istream ifstream ofstream fstream stringstream istringstream ostringstream unique_ptr shared_ptr weak_ptr nullptr_t');
+  const AT = words('true false nullptr NULL');
+  CodeMirror.defineMode('cpplite', () => ({
+    startState: () => ({ com: false, pre: false, inc: false }),
+    token(s, st) {
+      if (s.sol()) { st.pre = false; st.inc = false; }
+      if (st.com) { if (s.skipTo('*/')) { s.next(); s.next(); st.com = false; } else s.skipToEnd(); return 'comment'; }
+      if (s.eatSpace()) return null;
+      if (s.match('//')) { s.skipToEnd(); return 'comment'; }
+      if (s.match('/*')) { st.com = true; return this.token(s, st) || 'comment'; }
+      if (s.sol() || /^\s*$/.test(s.string.slice(0, s.start))) { const m = s.match(/^#\s*\w+/); if (m) { st.pre = true; st.inc = /include/.test(m[0]); return 'meta'; } }
+      if (st.inc && s.match(/^<[^>]*>/)) return 'string';
+      if (s.match(/^R"([^(]*)\(/)) { while (!s.eol()) { if (s.match(')"')) return 'string'; s.next(); } return 'string'; }
+      const ch = s.peek();
+      if (ch === '"' || ch === "'") { s.next(); let esc = false, c; while ((c = s.next()) != null) { if (c === ch && !esc) break; esc = !esc && c === '\\'; } return 'string'; }
+      if (s.match(/^(0[xX][\da-fA-F']+|0[bB][01']+|(\d[\d']*)?\.?\d[\d']*([eE][+-]?\d+)?)[uUlLfFzZ]*/)) return 'number';
+      const id = s.match(/^[A-Za-z_]\w*/);
+      if (id) { const w = id[0]; if (st.pre) return 'meta'; if (KW.has(w)) return 'keyword'; if (TY.has(w)) return 'type'; if (AT.has(w)) return 'atom'; return 'variable'; }
+      if (s.match(/^[+\-*/%=<>!&|^~?:]+/)) return 'operator';
+      s.next(); return null;
+    },
+    lineComment: '//', blockCommentStart: '/*', blockCommentEnd: '*/',
+    electricChars: '{}', closeBrackets: '()[]{}\'\'""',
+    indent(st, after, cx) { return CodeMirror.Pass; }
+  }));
+  CodeMirror.defineMIME('text/x-c++src', 'cpplite');
+  if (!CodeMirror.runMode) CodeMirror.runMode = function (text, spec, el) {
+    const mode = CodeMirror.getMode(CodeMirror.defaults, spec), st = CodeMirror.startState(mode);
+    const lines = CodeMirror.splitLines(text);
+    lines.forEach((line, i) => {
+      if (i) el.appendChild(document.createTextNode('\n'));
+      const s = new CodeMirror.StringStream(line, 4);
+      if (!line && mode.blankLine) mode.blankLine(st);
+      while (!s.eol()) {
+        const style = mode.token(s, st), txt = s.current();
+        if (style) { const sp = document.createElement('span'); sp.className = style.split(' ').map(x => 'cm-' + x).join(' '); sp.textContent = txt; el.appendChild(sp); }
+        else el.appendChild(document.createTextNode(txt));
+        s.start = s.pos;
+      }
+    });
+  };
+})();
+
+</script>
+<script>
+"use strict";
+/* ================= core ================= */
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  if (attrs) for (const [k, v] of Object.entries(attrs)) {
+    if (v == null || v === false) continue;
+    if (k === 'class') el.className = v;
+    else if (k === 'html') el.innerHTML = v;
+    else if (k === 'text') el.textContent = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2), v);
+    else el.setAttribute(k, v === true ? '' : v);
+  }
+  for (const kid of kids.flat()) if (kid != null && kid !== false) el.append(kid.nodeType ? kid : document.createTextNode(String(kid)));
+  return el;
+}
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+let toastT;
+function toast(msg, ms = 2600) {
+  let t = $('.toast'); if (!t) { t = h('div', { class: 'toast', role: 'status' }); document.body.append(t); }
+  t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => t.hidden = true, ms);
+}
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+function plural(n, a, b, c) { n = Math.abs(n) % 100; const n1 = n % 10; if (n > 10 && n < 20) return c; if (n1 > 1 && n1 < 5) return b; if (n1 === 1) return a; return c; }
+function normOut(s) { return String(s ?? '').replace(/\r\n/g, '\n').split('\n').map(l => l.replace(/[ \t]+$/, '')).join('\n').replace(/\n+$/, ''); }
+function md(s) { // tiny markdown for AI answers: code fences, headings, inline code, bold, paragraphs, lists
+  const parts = String(s).split(/```(\w*)\n?([\s\S]*?)```/g); let out = '';
+  for (let i = 0; i < parts.length; i++) {
+    if (i % 3 === 1) continue;
+    if (i % 3 === 2) { out += '<pre>' + esc(parts[i].replace(/\n$/, '')) + '</pre>'; continue; }
+    const blocks = parts[i].replace(/^#{1,6}[ \t]+.*$/gm, '\n$&\n').split(/\n{2,}/); // заголовок всегда в своём блоке, даже без пустых строк вокруг
+    for (let b of blocks) {
+      if (!b.trim()) continue;
+      b = esc(b).replace(/`([^`]+)`/g, '<code>$1</code>').replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>');
+      const hd = b.match(/^\s*#{1,6}[ \t]+(.*)$/);
+      if (hd) out += '<p class="md-h">' + hd[1].trim() + '</p>';
+      else if (/^\s*([-*]|\d+\.)\s/.test(b)) {
+        const items = b.split(/\n(?=\s*(?:[-*]|\d+\.)\s)/).map(x => '<li>' + x.replace(/^\s*(?:[-*]|\d+\.)\s/, '').replace(/\n/g, '<br>') + '</li>').join('');
+        out += /^\s*\d/.test(b) ? '<ol>' + items + '</ol>' : '<ul>' + items + '</ul>';
+      } else out += '<p>' + b.replace(/\n/g, '<br>') + '</p>';
+    }
+  }
+  return out;
+}
+
+/* ---------- progress store: localStorage cache + per-user cloud doc ---------- */
+const Store = {
+  key: 'pvk-progress-v1',
+  data: { read: {}, quiz: {}, tasks: {}, pred: {}, cards: {}, exams: [], last: null, updated: 0 },
+  cloud: null, saveT: null, saving: false, dirty: false,
+  load() {
+    try { const raw = localStorage.getItem(this.key); if (raw) Object.assign(this.data, JSON.parse(raw)); } catch (e) { }
+  },
+  touch() {
+    this.data.updated = Date.now();
+    try { localStorage.setItem(this.key, JSON.stringify(this.data)); } catch (e) { }
+    this.dirty = true; clearTimeout(this.saveT); this.saveT = setTimeout(() => this.flush(), 2500);
+    App.refreshProgress();
+  },
+  async flush() {
+    if (!this.cloud || !this.dirty || this.saving) return;
+    this.saving = true; this.dirty = false;
+    try { await this.cloud.set({ json: JSON.stringify(this.data), updated: this.data.updated }); }
+    catch (e) { if (e && e.code === 'invalid_argument') this.cloud = null; else this.dirty = true; }
+    this.saving = false;
+    if (this.dirty) { clearTimeout(this.saveT); this.saveT = setTimeout(() => this.flush(), 4000); }
+  },
+  merge(remote) { // union-ish merge: keep the "best" of both
+    const a = this.data, b = remote;
+    for (const k of ['read', 'quiz', 'pred']) a[k] = Object.assign({}, b[k] || {}, a[k] || {});
+    a.tasks = a.tasks || {};
+    for (const [id, t] of Object.entries(b.tasks || {})) {
+      const m = a.tasks[id];
+      if (!m) a.tasks[id] = t;
+      else { m.solved = m.solved || t.solved; m.tries = Math.max(m.tries || 0, t.tries || 0); if (!m.code && t.code) m.code = t.code; }
+    }
+    for (const [id, c] of Object.entries(b.cards || {})) { const m = a.cards[id]; if (!m || (c.ts || 0) > (m.ts || 0)) a.cards[id] = c; }
+    const seen = new Set((a.exams || []).map(e => e.ts)); for (const e of b.exams || []) if (!seen.has(e.ts)) a.exams.push(e);
+    if (!a.last && b.last) a.last = b.last;
+  },
+  async initCloud() {
+    try {
+      if (!window.claude || !window.claude.use) return;
+      const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+      if (!db || !user) return;
+      const id = await user.id(); if (!id) return;
+      this.cloud = db.doc('data/users/' + id + '/progress');
+      const snap = await this.cloud.get();
+      if (snap.exists) {
+        const d = snap.data(); try { this.merge(JSON.parse(d.json)); } catch (e) { }
+        try { localStorage.setItem(this.key, JSON.stringify(this.data)); } catch (e) { }
+        App.refreshProgress(); App.rerenderSoft();
+      }
+      this.dirty = true; this.flush();
+      $('#sync').textContent = 'прогресс в облаке'; $('#sync').title = 'Прогресс сохраняется в твоём аккаунте и виден на всех устройствах';
+    } catch (e) { /* stay local */ }
+  }
+};
+
+/* ---------- content loading ---------- */
+const Data = {
+  manifest: null, chapters: {}, tasks: null, pred: null, cards: null, theory: null,
+  async json(p) { const r = await fetch(p); if (!r.ok) throw new Error(p + ': ' + r.status); return r.json(); },
+  async text(p) { const r = await fetch(p); if (!r.ok) throw new Error(p + ': ' + r.status); return r.text(); },
+  async init() {
+    this.manifest = await this.json('content/manifest.json');
+    [this.tasks, this.pred, this.cards, this.theory] = await Promise.all([
+      this.json('data/tasks.json').catch(() => []), this.json('data/predict.json').catch(() => []),
+      this.json('data/cards.json').catch(() => []), this.json('data/theory.json').catch(() => [])]);
+  },
+  chapter(id) { return this.manifest.chapters.find(c => c.id === id); },
+  async chapterHTML(id) { if (!this.chapters[id]) this.chapters[id] = await this.text('content/ch' + id + '.html'); return this.chapters[id]; },
+  task(id) { return this.tasks.find(t => t.id === id); }
+};
+
+/* ================= C++ runner: local compiler via server.py ================= */
+const API = async (path, body) => {
+  const r = await fetch(path, body === undefined ? {} : { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-PVK': '1' }, body: JSON.stringify(body) });
+  let j = null; try { j = await r.json(); } catch (e) { }
+  if (!r.ok && !j) throw new Error(path + ': HTTP ' + r.status);
+  return j;
+};
+const Runner = {
+  ready: false, ok: true, info: null, loading: null, cache: new Map(),
+  status() {
+    if (!this.info) return this.loading ? 'проверяю компилятор…' : 'компилятор: сервер не отвечает';
+    if (!this.info.ok) return '⚠ компилятор не найден';
+    return (this.info.cxx || 'c++') + ' · -std=' + this.info.std;
+  },
+  setStatus() { for (const e of $$('.compiler-state')) { e.textContent = this.status(); if (this.info) e.title = this.info.version || this.info.error || ''; } },
+  boot() {
+    if (this.loading) return this.loading;
+    this.loading = API('/api/info').then(i => { this.info = i; this.ready = !!i.ok; this.ok = !!i.ok; this.setStatus(); App.onInfo && App.onInfo(i); return i; })
+      .catch(e => { this.ok = false; this.loading = null; this.setStatus(); throw new Error('Сервер платформы не отвечает. Запусти его: python3 server.py'); });
+    return this.loading;
+  },
+  clean(log) { return String(log || '').replace(/\x1b\[[0-9;]*m/g, ''); },
+  async compile(src, opt = '-O0') {
+    const key = opt + '\n' + src; if (this.cache.has(key)) return this.cache.get(key);
+    const i = await this.boot(); if (!i.ok) return { ok: false, log: i.error };
+    const r = await API('/api/compile', { src, opt });
+    const out = { ok: !!r.ok, log: this.clean(r.log), id: r.id };
+    if (this.cache.size > 50) this.cache.delete(this.cache.keys().next().value);
+    if (out.ok) this.cache.set(key, out);
+    return out;
+  },
+  async exec(comp, stdin = '', { timeout = 4000 } = {}) {
+    try { return await API('/api/run', { id: comp.id, stdin, timeout: timeout / 1000 }); }
+    catch (e) { return { stdout: '', stderr: '', code: null, trap: 'сервер не ответил: ' + e.message }; }
+  },
+  async run(src, stdin = '', o = {}) {
+    const c = await this.compile(src, o.opt || '-O0');
+    if (!c.ok) return { stage: 'compile', log: c.log };
+    const r = await this.exec(c, stdin); r.log = c.log; return r;
+  }
+};
+
+/* ================= code blocks, quizzes ================= */
+const WRAP_HEAD = `#include <iostream>
+#include <stdexcept>
+#include <iomanip>
+#include <string>
+#include <string_view>
+#include <cstdint>
+#include <climits>
+#include <cmath>
+#include <cstring>
+#include <memory>
+#include <utility>
+#include <limits>
+`;
+function wrapMain(code) {
+  const inc = [], body = [];
+  for (const l of code.split('\n')) (/^\s*#/.test(l) ? inc : body).push(l);
+  return WRAP_HEAD + inc.join('\n') + '\nint main() {\n' + body.map(l => '    ' + l).join('\n') + '\n    return 0;\n}\n';
+}
+function highlight(el, code) {
+  el.classList.add('cm-s-k');
+  if (window.CodeMirror && CodeMirror.runMode) { el.textContent = ''; CodeMirror.runMode(code, 'text/x-c++src', el); }
+  else el.textContent = code;
+}
+function dedent(s) {
+  s = s.replace(/^\n+/, '').replace(/\s+$/, '');
+  const ind = Math.min(...s.split('\n').filter(l => l.trim()).map(l => l.match(/^ */)[0].length));
+  return s.split('\n').map(l => l.slice(ind)).join('\n');
+}
+function makeEditor(host, code, opts = {}) {
+  if (!window.CodeMirror) { const ta = h('textarea', { class: 'qin', style: 'width:100%;min-height:220px' }); ta.value = code; host.append(ta); return { getValue: () => ta.value, setValue: v => ta.value = v, refresh() { }, on() { }, focus() { ta.focus() } }; }
+  const cm = CodeMirror(host, {
+    value: code, mode: 'text/x-c++src', theme: 'k', lineNumbers: true, indentUnit: 4, tabSize: 4, indentWithTabs: false,
+    matchBrackets: true, autoCloseBrackets: true, viewportMargin: Infinity, lineWrapping: false,
+    extraKeys: { Tab: c => c.somethingSelected() ? c.indentSelection('add') : c.replaceSelection('    ', 'end'), 'Ctrl-Enter': () => opts.onRun && opts.onRun(), 'Cmd-Enter': () => opts.onRun && opts.onRun() }
+  });
+  cm.getWrapperElement().classList.add('cm-s-k');
+  cm.setSize(null, opts.height || 'auto');
+  setTimeout(() => cm.refresh(), 30);
+  return cm;
+}
+function renderOutput(pre, res, expected) {
+  pre.innerHTML = '';
+  if (res.stage === 'compile') { pre.append(h('span', { class: 'err' }, 'Ошибка компиляции (CE):\n'), h('span', {}, res.log || '')); return; }
+  if (res.error) { pre.append(h('span', { class: 'err' }, res.error)); return; }
+  if (res.log && res.log.trim()) pre.append(h('span', { class: 'dim' }, res.log.trim() + '\n'));
+  pre.append(h('span', {}, res.stdout || ''));
+  if (res.stderr) pre.append(h('span', { class: 'err' }, (res.stdout && !res.stdout.endsWith('\n') ? '\n' : '') + res.stderr));
+  const tail = res.timeout ? '\n⏱ Превышено время (бесконечный цикл?)' : res.trap ? `\n💥 Программа упала: ${res.trap}` : `\n— код возврата ${res.code}, ${res.ms} мс`;
+  pre.append(h('span', { class: res.timeout || res.trap || res.code ? 'err' : 'dim' }, tail));
+}
+function hydrateCode(root) {
+  for (const pre of $$('pre.cpp, script[type="text/x-cpp"]', root)) {
+    const code = dedent(pre.textContent);
+    const runAttr = pre.getAttribute('data-run');
+    const runnable = runAttr != null;
+    const box = h('div', { class: 'code' + (pre.hasAttribute('data-ce') ? ' ce' : '') });
+    const bar = h('div', { class: 'bar' },
+      h('span', { class: 'tag' }, pre.dataset.title || (pre.hasAttribute('data-ce') ? 'не скомпилируется' : pre.hasAttribute('data-ub') ? 'UB внутри' : 'C++')),
+      h('span', { class: 'sp' }));
+    const out = h('pre'); highlight(out, code);
+    const copy = h('button', { type: 'button', title: 'Скопировать', onclick: async () => { try { await navigator.clipboard.writeText(code); toast('Скопировано'); } catch (e) { toast('Не вышло скопировать — выдели вручную'); } } }, 'копия');
+    bar.append(copy);
+    if (runnable) {
+      const full = runAttr === 'wrap' ? wrapMain(code) : code;
+      bar.append(h('button', { type: 'button', title: 'Открыть в песочнице', onclick: () => App.openSandbox(full, pre.dataset.stdin || '') }, 'в песочницу'));
+      const runBtn = h('button', { type: 'button', class: 'run' }, '▶ запустить');
+      runBtn.onclick = () => openInline(box, out, full, pre.dataset.stdin || '', runBtn, runAttr === 'wrap' ? code : null);
+      bar.append(runBtn);
+    }
+    box.append(bar, out);
+    pre.replaceWith(box);
+  }
+}
+function openInline(box, staticPre, full, stdin, btn, shownBody) {
+  if (box._open) { box._run(); return; }
+  box._open = true;
+  const host = h('div'); staticPre.replaceWith(host);
+  const ed = makeEditor(host, full, { onRun: () => box._run() });
+  const ta = h('textarea', { placeholder: 'stdin (ввод программы)', spellcheck: 'false', 'aria-label': 'Ввод программы' }); ta.value = stdin;
+  const res = h('pre', { class: 'out' }, h('span', { class: 'dim' }, 'Ctrl/⌘+Enter — запустить'));
+  box.append(h('div', { class: 'inline-run' }, h('div', { class: 'io' }, ta, res)));
+  box._run = async () => {
+    btn.disabled = true; res.innerHTML = '<span class="dim"><span class="spin"></span> ' + 'компилирую…' + '</span>';
+    try { renderOutput(res, await Runner.run(ed.getValue(), ta.value)); } catch (e) { res.textContent = String(e.message || e); }
+    btn.disabled = false;
+  };
+  box._run();
+}
+
+/* ---------- quizzes ---------- */
+function normAns(s) { return String(s).trim().replace(/\s+/g, ' ').toLowerCase().replace(/[«»"]/g, ''); }
+function buildQuiz(spec, qid, opts = {}) {
+  const done = Store.data.quiz[qid];
+  const box = h('div', { class: 'quiz' });
+  const st = h('span', { class: 'st' }, done === 1 ? '✓ решено' : '');
+  box.append(h('div', { class: 'qh' }, h('span', {}, opts.label || (spec.type === 'out' ? 'Что выведет?' : 'Проверь себя')), st));
+  box.append(h('div', { class: 'qq', html: spec.q }));
+  if (spec.code) { const c = h('div', { class: 'code' }); const p = h('pre'); highlight(p, dedent(spec.code)); c.append(p); box.append(c); }
+  const why = h('div', { class: 'why', hidden: true });
+  const verdict = ok => {
+    why.hidden = false; why.className = 'why ' + (ok ? 'good' : 'bad');
+    why.innerHTML = `<span class="v">${ok ? (spec.ok || 'В точку.') : (spec.no || 'Мимо.')}</span>` + (spec.why || '');
+    if (!opts.noStore) { if (ok || Store.data.quiz[qid] !== 1) Store.data.quiz[qid] = ok ? 1 : 0; Store.touch(); }
+    st.textContent = ok ? '✓ решено' : '✗ попробуй ещё';
+    opts.onAnswer && opts.onAnswer(ok);
+  };
+  if (spec.type === 'open') {
+    const ta = h('textarea', { class: 'qin', style: 'width:100%;font-family:var(--f-body)', placeholder: 'Ответь своими словами, потом сверься с эталоном' });
+    const self = h('div', { class: 'qrow', hidden: true },
+      h('span', { class: 'vsmall' }, 'Сам оцени:'),
+      h('button', { type: 'button', class: 'btn ok sm', onclick: () => verdict(true) }, 'Ответил верно'),
+      h('button', { type: 'button', class: 'btn warn sm', onclick: () => verdict(false) }, 'Не совсем'));
+    const reveal = h('button', { type: 'button', class: 'btn sm' }, 'Сверить с эталоном');
+    const aiB = h('button', { type: 'button', class: 'btn ai sm' }, '✦ Проверить с ИИ');
+    const model = h('div', { class: 'why', hidden: true, html: '<span class="v">Эталон:</span>' + (spec.why || '') });
+    reveal.onclick = () => { model.hidden = false; self.hidden = false; };
+    aiB.onclick = async () => {
+      if (!ta.value.trim()) { toast('Сначала напиши ответ'); return; }
+      aiB.disabled = true;
+      const out = await Tutor.inline(box, TUTOR_RULES + `\n\nПроверь ответ студента на вопрос как экзаменатор: что верно, что упущено, есть ли ошибки. 3–6 предложений, в конце вердикт «зачтено» или «не зачтено».\n\nВопрос: ${h('div', { html: spec.q }).textContent}\n${spec.code ? 'Код:\n' + spec.code + '\n' : ''}Эталон: ${h('div', { html: spec.why }).textContent}\n\nОтвет студента: ${ta.value}`, 'Проверка ответа');
+      aiB.disabled = false; self.hidden = false;
+    };
+    box.append(ta, h('div', { class: 'qrow', style: 'margin-top:8px' }, reveal, aiB), self, model);
+    return box;
+  }
+  if (spec.type === 'single' || spec.type === 'multi') {
+    const wrap = h('div', { class: 'opts' }); const sel = new Set();
+    spec.opts.forEach((o, i) => {
+      const b = h('button', { type: 'button', class: 'opt', html: `<span class="k">${String.fromCharCode(65 + i)}</span><span>${o}</span>` });
+      b.onclick = () => {
+        if (spec.type === 'single') { $$('.opt', wrap).forEach(x => x.classList.remove('sel', 'right', 'wrong')); sel.clear(); sel.add(i); b.classList.add('sel'); check(); }
+        else { sel.has(i) ? sel.delete(i) : sel.add(i); b.classList.toggle('sel'); $$('.opt', wrap).forEach(x => x.classList.remove('right', 'wrong')); why.hidden = true; }
+      };
+      wrap.append(b);
+    });
+    const check = () => {
+      const ans = new Set([].concat(spec.ans)); const btns = $$('.opt', wrap);
+      const ok = ans.size === sel.size && [...sel].every(i => ans.has(i));
+      btns.forEach((b, i) => { if (sel.has(i)) b.classList.add(ans.has(i) ? 'right' : 'wrong'); else if (ok === false && spec.type === 'single' && false) b.classList.add('right'); });
+      verdict(ok);
+    };
+    box.append(wrap);
+    if (spec.type === 'multi') box.append(h('div', { class: 'qrow' }, h('button', { type: 'button', class: 'btn sm', onclick: check }, 'Проверить'), h('span', { class: 'vsmall' }, 'можно выбрать несколько')));
+  } else {
+    const multi = spec.type === 'out' && String([].concat(spec.ans)[0]).includes('\n');
+    const inp = multi ? h('textarea', { class: 'qin', spellcheck: 'false', placeholder: 'вывод программы, построчно' }) : h('input', { class: 'qin', spellcheck: 'false', placeholder: spec.ph || (spec.type === 'out' ? 'вывод программы (или CE / UB)' : 'ответ') });
+    const check = () => {
+      const v = spec.type === 'out' ? normOut(inp.value) : normAns(inp.value);
+      const ok = [].concat(spec.ans).some(a => spec.type === 'out' ? normOut(a) === v || normAns(a) === normAns(inp.value) : normAns(a) === v);
+      verdict(ok);
+    };
+    if (!multi) inp.addEventListener('keydown', e => { if (e.key === 'Enter') check(); });
+    const show = h('button', { type: 'button', class: 'btn ghost sm', onclick: () => { why.hidden = false; why.className = 'why'; why.innerHTML = `<span class="v">Ответ:</span><code>${esc([].concat(spec.ans)[0])}</code> ` + (spec.why || ''); } }, 'Показать ответ');
+    box.append(h('div', { class: 'qrow' }, inp, h('button', { type: 'button', class: 'btn sm', onclick: check }, 'Проверить'), show));
+  }
+  box.append(why);
+  return box;
+}
+function qzSpec(el) { // <div class="qz" data-type="single|multi|text|out" data-ans="1"> .q, script x-cpp, ol>li, .why, pre.ans
+  const t = el.dataset.type || 'single';
+  const spec = { type: t, q: $('.q', el)?.innerHTML || '', why: $('.why', el)?.innerHTML || '' };
+  const code = $('script[type="text/x-cpp"]', el); if (code) spec.code = code.textContent;
+  if (t === 'single' || t === 'multi') { spec.opts = $$('ol > li', el).map(li => li.innerHTML); const a = el.dataset.ans.split(',').map(Number); spec.ans = t === 'single' ? a[0] : a; }
+  else { const pa = $$('pre.ans', el).map(p => p.textContent.replace(/^\n/, '')); spec.ans = pa.length ? pa : el.dataset.ans.split('|'); }
+  if (el.dataset.ph) spec.ph = el.dataset.ph;
+  return spec;
+}
+function hydrateQuizzes(root, chId) {
+  $$('script[type="text/x-quiz"], div.qz', root).forEach((s, i) => {
+    let spec; try { spec = s.tagName === 'DIV' ? qzSpec(s) : JSON.parse(s.textContent); } catch (e) { s.replaceWith(h('div', { class: 'c c-ub' }, 'Битый квиз: ' + e.message)); return; }
+    s.replaceWith(buildQuiz(spec, chId + '-q' + i));
+  });
+}
+
+/* ================= interactive widgets ================= */
+const Widgets = {};
+function vizBox(title, ...ctl) { const b = h('div', { class: 'viz' }); b.append(h('div', { class: 'vh' }, h('b', {}, title), h('span', { class: 'sp' }), ...ctl)); return b; }
+function seg(items, cur, on) {
+  const s = h('div', { class: 'seg', role: 'group' });
+  for (const [v, l] of items) { const b = h('button', { type: 'button', class: v === cur ? 'on' : '' }, l); b.onclick = () => { $$('button', s).forEach(x => x.classList.remove('on')); b.classList.add('on'); on(v); }; s.append(b); }
+  return s;
+}
+
+/* ---- bits: целые числа в памяти, дополнительный код, переполнение, битовые операции ---- */
+const INT_T = { int8: [8, 1, 'signed char / int8_t'], uint8: [8, 0, 'unsigned char / uint8_t'], int16: [16, 1, 'short / int16_t'], uint16: [16, 0, 'unsigned short'], int32: [32, 1, 'int / int32_t'], uint32: [32, 0, 'unsigned int / uint32_t'] };
+function bitsOf(u, n) { const a = []; for (let i = n - 1; i >= 0; i--) a.push(Math.floor(u / 2 ** i) % 2); return a; }
+function sval(u, n, s) { return s && u >= 2 ** (n - 1) ? u - 2 ** n : u; }
+function wrapU(x, n) { const m = 2 ** n; return ((x % m) + m) % m; }
+Widgets.bits = (el, cfg) => {
+  let type = cfg.type || 'int8', u = wrapU(cfg.value ?? 5, INT_T[type][0]), b2 = wrapU(cfg.b ?? 12, INT_T[type][0]), op = cfg.op || '&';
+  const ops = !!cfg.ops;
+  const box = vizBox(ops ? 'Битовые операции' : 'Целое число в памяти', seg(Object.keys(INT_T).filter(k => !cfg.only || cfg.only.includes(k)).map(k => [k, k]), type, v => { type = v; const n = INT_T[v][0]; u = wrapU(sval(u, 32, 0), n); b2 = wrapU(b2, n); draw(); }));
+  const body = h('div'); box.append(body); el.replaceWith(box);
+  const row = (val, n, clickable, onFlip, signed) => {
+    const r = h('div', { class: 'bitrow' + (n > 16 ? ' sm' : '') });
+    bitsOf(val, n).forEach((b, i) => {
+      const idx = n - 1 - i;
+      const d = h('div', { class: 'bit' + (b ? ' one' : '') + (signed && i === 0 ? ' sign' : '') + (i > 0 && i % 8 === 0 ? ' gap' : ''), title: 'бит ' + idx + ' (вес ' + (signed && i === 0 ? '−' : '') + '2^' + idx + ')' }, String(b));
+      if (n <= 16 || i % 4 === 0) d.append(h('i', {}, String(idx)));
+      if (clickable) { d.tabIndex = 0; d.setAttribute('role', 'button'); d.onclick = () => onFlip(idx); d.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFlip(idx); } }; }
+      r.append(d);
+    });
+    return r;
+  };
+  const hex = (x, n) => '0x' + x.toString(16).toUpperCase().padStart(n / 4, '0');
+  function draw() {
+    const [n, s] = INT_T[type]; body.innerHTML = '';
+    const v = sval(u, n, s), min = s ? -(2 ** (n - 1)) : 0, max = s ? 2 ** (n - 1) - 1 : 2 ** n - 1;
+    const flip = idx => { u = (Math.floor(u / 2 ** idx) % 2) ? u - 2 ** idx : u + 2 ** idx; draw(); };
+    const inp = h('input', { class: 'qin', type: 'number', value: v, style: 'max-width:160px', 'aria-label': 'десятичное значение' });
+    inp.onchange = () => { const x = Math.trunc(Number(inp.value)); if (!isFinite(x)) return; u = wrapU(x, n); draw(); };
+    body.append(h('div', { class: 'vsmall', style: 'margin-bottom:16px' }, INT_T[type][2] + ` · ${n} бит · диапазон [${min}; ${max}] · кликай по битам`));
+    body.append(row(u, n, true, flip, s));
+    let flag = '';
+    const step = d => { const raw = v + d; const out = raw < min || raw > max; u = wrapU(raw, n); draw(); if (out) toast(s ? `Переполнение знакового типа: в C++ это UB. Железо просто «прокрутило» значение.` : `Беззнаковый тип: арифметика по модулю 2^${n}, всё законно.`, 4200); };
+    const ctl = h('div', { class: 'qrow', style: 'margin-top:12px' }, inp,
+      h('button', { type: 'button', class: 'btn ghost sm', onclick: () => step(1) }, '+1'),
+      h('button', { type: 'button', class: 'btn ghost sm', onclick: () => step(-1) }, '−1'),
+      h('button', { type: 'button', class: 'btn ghost sm', onclick: () => { u = wrapU(max, n); draw(); } }, 'max'),
+      h('button', { type: 'button', class: 'btn ghost sm', onclick: () => { u = wrapU(min, n); draw(); } }, 'min'),
+      h('button', { type: 'button', class: 'btn ghost sm', onclick: () => { u = 2 ** n - 1 - u; draw(); } }, '~x'),
+      h('button', { type: 'button', class: 'btn ghost sm', onclick: () => { u = wrapU(u * 2, n); draw(); } }, 'x << 1'),
+      h('button', { type: 'button', class: 'btn ghost sm', onclick: () => { u = s ? wrapU(Math.floor(v / 2), n) : Math.floor(u / 2); draw(); } }, 'x >> 1'));
+    body.append(ctl);
+    const kv = h('dl', { class: 'kv' });
+    const add = (k, val) => kv.append(h('dt', {}, k), h('dd', { html: val }));
+    add('десятичное', `<b>${v}</b>`); add('hex', hex(u, n));
+    if (s) {
+      add('старший бит', u >= 2 ** (n - 1) ? '1 → число отрицательное' : '0 → число неотрицательное');
+      if (v < 0) {
+        const absb = bitsOf(-v, n).join(''), inv = bitsOf(2 ** n - 1 - (-v), n).join('');
+        add('как получилось', `|x| = ${-v} → <code>${absb.length > 16 ? absb.slice(-16) : absb}</code><br>инвертируем → <code>${inv.length > 16 ? '…' + inv.slice(-16) : inv}</code><br>+1 → <code>${bitsOf(u, n).join('').slice(-16)}</code> = дополнительный код`);
+      }
+      if (v === min) add('заметь', 'у минимального числа нет положительной пары: −(' + min + ') не влезает в тип');
+    }
+    body.append(kv);
+    if (ops) {
+      body.append(h('div', { style: 'margin:16px 0 6px', class: 'vsmall' }, 'Второй операнд b (тоже кликабельный):'));
+      body.append(row(b2, n, true, idx => { b2 = (Math.floor(b2 / 2 ** idx) % 2) ? b2 - 2 ** idx : b2 + 2 ** idx; draw(); }, s));
+      body.append(h('div', { style: 'margin:12px 0' }, seg([['&', 'a & b'], ['|', 'a | b'], ['^', 'a ^ b']], op, v2 => { op = v2; draw(); })));
+      const r = op === '&' ? bitsOf(u, n).map((x, i) => x & bitsOf(b2, n)[i]) : op === '|' ? bitsOf(u, n).map((x, i) => x | bitsOf(b2, n)[i]) : bitsOf(u, n).map((x, i) => x ^ bitsOf(b2, n)[i]);
+      const ru = r.reduce((acc, x) => acc * 2 + x, 0);
+      body.append(h('div', { class: 'vsmall', style: 'margin:4px 0 16px' }, 'Результат:'), row(ru, n, false, null, s));
+      body.append(h('p', { class: 'vsmall', html: `a = <b>${v}</b>, b = <b>${sval(b2, n, s)}</b>, a ${op} b = <b>${sval(ru, n, s)}</b>` }));
+    }
+  }
+  draw();
+};
+
+/* ---- IEEE 754 float ---- */
+Widgets.ieee = (el, cfg) => {
+  const dv = new DataView(new ArrayBuffer(4)); let bits = 0;
+  const set = x => { dv.setFloat32(0, x); bits = dv.getUint32(0); };
+  set(cfg.value ?? -121.1);
+  const presets = cfg.presets || [0.1, 0.2, 0.3, -121.1, 1, 0.5, 16777217, 1e30, 'Infinity', 'NaN'];
+  const box = vizBox('IEEE 754 · float (32 бита)'); const body = h('div'); box.append(body); el.replaceWith(box);
+  function exactDec(M, e) { // M * 2^e exactly
+    if (e >= 0) return (BigInt(M) << BigInt(e)).toString();
+    const k = -e; let s = (BigInt(M) * 5n ** BigInt(k)).toString().padStart(k + 1, '0');
+    s = s.slice(0, s.length - k) + '.' + s.slice(s.length - k); return s.replace(/0+$/, '').replace(/\.$/, '');
+  }
+  function draw() {
+    body.innerHTML = '';
+    dv.setUint32(0, bits); const f = dv.getFloat32(0);
+    const S = bits >>> 31, P = (bits >>> 23) & 255, Mf = bits & 0x7fffff;
+    const inp = h('input', { class: 'qin', value: String(f), style: 'max-width:200px', 'aria-label': 'число' });
+    inp.onchange = () => { const x = Number(inp.value.replace(',', '.')); if (inp.value.trim() === '' || (isNaN(x) && inp.value.trim().toLowerCase() !== 'nan')) return; set(x); draw(); };
+    body.append(h('div', { class: 'qrow' }, inp, ...presets.map(p => h('button', { type: 'button', class: 'btn ghost sm', onclick: () => { set(Number(p)); draw(); } }, String(p)))));
+    const r = h('div', { class: 'bitrow sm', style: 'margin-top:22px' });
+    for (let i = 31; i >= 0; i--) {
+      const b = (bits >>> i) & 1, cls = i === 31 ? 'sign' : i >= 23 ? 'exp' : 'man';
+      const d = h('div', { class: 'bit ' + cls + (b ? ' one' : '') + (i === 30 || i === 22 ? ' gap' : ''), tabIndex: 0, role: 'button', title: cls === 'sign' ? 'знак' : cls === 'exp' ? 'порядок' : 'мантисса' }, String(b));
+      if (i === 31 || i === 30 || i === 22 || i === 0) d.append(h('i', {}, String(i)));
+      d.onclick = () => { bits = (bits ^ (1 << i)) >>> 0; draw(); };
+      d.onkeydown = e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); d.click(); } };
+      r.append(d);
+    }
+    body.append(r, h('div', { class: 'legend', style: 'margin-top:8px' },
+      h('span', {}, h('i', { style: 'background:var(--red)' }), 'знак S (1 бит)'), h('span', {}, h('i', { style: 'background:var(--green)' }), 'порядок P (8 бит)'), h('span', {}, h('i', { style: 'background:var(--violet)' }), 'мантисса M (23 бита)')));
+    const kv = h('dl', { class: 'kv' }); const add = (k, v) => kv.append(h('dt', {}, k), h('dd', { html: v }));
+    add('hex', '0x' + bits.toString(16).toUpperCase().padStart(8, '0'));
+    add('S', `${S} → ${S ? 'минус' : 'плюс'}`);
+    if (P === 255) add('особый случай', Mf ? '<b>NaN</b> (порядок из единиц, мантисса ≠ 0)' : `<b>${S ? '−' : '+'}inf</b> (порядок из единиц, мантисса = 0)`);
+    else if (P === 0) { add('P', '0 → денормализованное число (без неявной единицы)'); add('значение', `(−1)^${S} × 0.M × 2^(−126) = <b>${S ? '-' : ''}${exactDec(Mf, -149)}</b>`); }
+    else {
+      add('P', `${P} → истинный порядок E = P − 127 = <b>${P - 127}</b>`);
+      add('1.M', '1.' + Mf.toString(2).padStart(23, '0').replace(/0+$/, '') + ' (двоичная)');
+      add('хранится точно', `<b>${S ? '-' : ''}${exactDec(Mf + 2 ** 23, P - 127 - 23)}</b>`);
+    }
+    add('как float', String(f));
+    body.append(kv);
+  }
+  draw();
+};
+
+/* ---- struct layout / выравнивание ---- */
+const TY = { char: [1, 1], bool: [1, 1], short: [2, 2], int: [4, 4], float: [4, 4], long: [8, 8], double: [8, 8], 'int*': [8, 8], int64_t: [8, 8] };
+const FCOL = ['var(--pen)', 'var(--green)', 'var(--violet)', 'var(--red)', 'var(--tk-type)', 'var(--tk-str)', 'var(--tk-pre)', 'var(--ink-2)'];
+Widgets.align = (el, cfg) => {
+  let fields = (cfg.fields || [['char', 'a'], ['long', 'c'], ['int', 'b']]).map(x => [...x]); let pack = false;
+  const box = vizBox('Раскладка struct в памяти (64-бит Linux/macOS)'); const body = h('div'); box.append(body); el.replaceWith(box);
+  function layout() {
+    let off = 0, al = 1; const items = [];
+    for (const [t, n] of fields) { const [sz, a0] = TY[t]; const a = pack ? 1 : a0; al = Math.max(al, a); const pad = (a - off % a) % a; if (pad) items.push({ pad }); off += pad; items.push({ t, n, sz, off }); off += sz; }
+    const tail = (al - off % al) % al; if (tail) items.push({ pad: tail, tail: 1 }); return { items, size: off + tail, al };
+  }
+  function draw() {
+    body.innerHTML = ''; const L = layout();
+    const list = h('div', { class: 'fields' });
+    fields.forEach((f, i) => {
+      const sel = h('select', { class: 'qin', style: 'max-width:110px;min-width:0;flex:none;padding:3px 6px', 'aria-label': 'тип поля' }, ...Object.keys(TY).map(t => h('option', { value: t, selected: t === f[0] }, t)));
+      sel.onchange = () => { f[0] = sel.value; draw(); };
+      list.append(h('div', { class: 'fieldrow' }, h('i', { style: `width:12px;height:12px;border-radius:3px;background:${FCOL[i % 8]};display:inline-block` }), sel, h('span', {}, f[1] + ';'),
+        h('button', { type: 'button', title: 'выше', 'aria-label': 'выше', onclick: () => { if (i) { [fields[i - 1], fields[i]] = [fields[i], fields[i - 1]]; draw(); } } }, '↑'),
+        h('button', { type: 'button', title: 'ниже', 'aria-label': 'ниже', onclick: () => { if (i < fields.length - 1) { [fields[i + 1], fields[i]] = [fields[i], fields[i + 1]]; draw(); } } }, '↓'),
+        h('button', { type: 'button', title: 'удалить', 'aria-label': 'удалить', onclick: () => { if (fields.length > 1) { fields.splice(i, 1); draw(); } } }, '×')));
+    });
+    body.append(h('div', { class: 'qrow' }, h('code', {}, 'struct S {'), h('span', { class: 'sp' })), list, h('code', {}, '};'));
+    const by = h('div', { class: 'bytes' }); let k = 0;
+    for (const it of L.items) {
+      if (it.pad) for (let j = 0; j < it.pad; j++) by.append(h('div', { class: 'byte pad', title: it.tail ? 'хвостовой padding' : 'padding' }, '·'));
+      else { const idx = fields.findIndex(f => f[1] === it.n); for (let j = 0; j < it.sz; j++) by.append(h('div', { class: 'byte', style: 'background:' + FCOL[idx % 8], title: it.n + ' (' + it.t + '), смещение ' + it.off }, j === 0 ? it.n : '')); }
+      k++;
+    }
+    const useful = fields.reduce((a, f) => a + TY[f[0]][0], 0);
+    body.append(by, h('p', { class: 'vsmall', html: `<b>sizeof(S) = ${L.size}</b>, alignof(S) = ${L.al}; полезных байт ${useful}, на «дырки» ушло ${L.size - useful}` }));
+    body.append(h('div', { class: 'qrow' },
+      h('button', { type: 'button', class: 'btn ghost sm', onclick: () => { fields.sort((a, b) => TY[b[0]][1] - TY[a[0]][1]); draw(); } }, 'отсортировать по выравниванию'),
+      h('button', { type: 'button', class: 'btn ghost sm', onclick: () => { const names = 'abcdefghij'; const nm = names.split('').find(c => !fields.some(f => f[1] === c)) || 'z'; fields.push(['char', nm]); draw(); } }, '+ поле'),
+      h('label', { class: 'vsmall', style: 'display:inline-flex;gap:6px;align-items:center' }, Object.assign(h('input', { type: 'checkbox', checked: pack }), { onchange: e => { pack = e.target.checked; draw(); } }), '#pragma pack(1)')));
+  }
+  draw();
+};
+
+/* ---- matrix fill patterns ---- */
+const MX_CODE = {
+  rows: `for (int i = 0; i < n; ++i)
+    for (int j = 0; j < n; ++j)
+        a[i][j] = ++k;`,
+  cols: `for (int j = 0; j < n; ++j)
+    for (int i = 0; i < n; ++i)
+        a[i][j] = ++k;`,
+  snake: `for (int i = 0; i < n; ++i)
+    for (int j = 0; j < n; ++j)
+        a[i][i % 2 == 0 ? j : n - 1 - j] = ++k;`,
+  diag: `for (int s = 0; s <= 2 * (n - 1); ++s)   // s = i + j
+    for (int i = 0; i < n; ++i) {
+        int j = s - i;
+        if (j >= 0 && j < n) a[i][j] = ++k;
+    }`,
+  spiral: `int top = 0, bottom = n - 1, left = 0, right = n - 1;
+while (top <= bottom && left <= right) {
+    for (int j = left; j <= right; ++j) a[top][j] = ++k;
+    ++top;
+    for (int i = top; i <= bottom; ++i) a[i][right] = ++k;
+    --right;
+    if (top <= bottom) {
+        for (int j = right; j >= left; --j) a[bottom][j] = ++k;
+        --bottom;
+    }
+    if (left <= right) {
+        for (int i = bottom; i >= top; --i) a[i][left] = ++k;
+        ++left;
+    }
+}`
+};
+function mxOrder(p, n) {
+  const o = [];
+  if (p === 'rows') for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) o.push([i, j]);
+  if (p === 'cols') for (let j = 0; j < n; j++) for (let i = 0; i < n; i++) o.push([i, j]);
+  if (p === 'snake') for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) o.push([i, i % 2 === 0 ? j : n - 1 - j]);
+  if (p === 'diag') for (let s = 0; s <= 2 * (n - 1); s++) for (let i = 0; i < n; i++) { const j = s - i; if (j >= 0 && j < n) o.push([i, j]); }
+  if (p === 'spiral') { let t = 0, b = n - 1, l = 0, r = n - 1; while (t <= b && l <= r) { for (let j = l; j <= r; j++) o.push([t, j]); t++; for (let i = t; i <= b; i++) o.push([i, r]); r--; if (t <= b) { for (let j = r; j >= l; j--) o.push([b, j]); b--; } if (l <= r) { for (let i = b; i >= t; i--) o.push([i, l]); l++; } } }
+  return o;
+}
+Widgets.matrix = (el, cfg) => {
+  let p = cfg.pattern || 'spiral', n = cfg.n || 5, timer = null, k = 0;
+  const box = vizBox('Заполнение матрицы', seg([['rows', 'по строкам'], ['cols', 'по столбцам'], ['snake', 'змейка'], ['diag', 'диагонали'], ['spiral', 'спираль']], p, v => { p = v; reset(); }));
+  const grid = h('div', { class: 'mx' }); const codeBox = h('div', { class: 'code' }); const cp = h('pre'); codeBox.append(cp);
+  const nIn = h('input', { type: 'range', min: 2, max: 8, value: n, 'aria-label': 'размер n' }); const nl = h('span', { class: 'vsmall' });
+  nIn.oninput = () => { n = +nIn.value; reset(); };
+  const play = h('button', { type: 'button', class: 'btn sm' }, '▶ заполнить');
+  const stepB = h('button', { type: 'button', class: 'btn ghost sm' }, 'шаг');
+  box.append(h('div', { class: 'qrow' }, play, stepB, h('label', { class: 'vsmall', style: 'display:inline-flex;gap:8px;align-items:center' }, 'n', nIn), nl), grid, codeBox);
+  el.replaceWith(box);
+  let order = [];
+  function reset() {
+    clearInterval(timer); timer = null; play.textContent = '▶ заполнить'; k = 0; order = mxOrder(p, n); nl.textContent = 'n = ' + n;
+    grid.style.gridTemplateColumns = `repeat(${n}, minmax(0, 44px))`; grid.innerHTML = '';
+    for (let i = 0; i < n * n; i++) grid.append(h('div'));
+    highlight(cp, `int k = 0;\n${MX_CODE[p]}`);
+  }
+  function step() {
+    if (k >= order.length) { clearInterval(timer); timer = null; play.textContent = '↺ заново'; return false; }
+    $$('div.now', grid).forEach(d => d.classList.replace('now', 'on'));
+    const [i, j] = order[k++]; const c = grid.children[i * n + j]; c.textContent = k; c.className = 'now'; return true;
+  }
+  play.onclick = () => {
+    if (timer) { clearInterval(timer); timer = null; play.textContent = '▶ дальше'; return; }
+    if (k >= order.length) reset();
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) { while (step()); return; }
+    play.textContent = '⏸ пауза'; timer = setInterval(step, Math.max(90, 900 / n));
+  };
+  stepB.onclick = () => { if (k >= order.length) reset(); step(); };
+  reset();
+};
+
+/* ---- tracer: пошаговое исполнение с памятью ---- */
+Widgets.trace = (el, spec) => {
+  const box = vizBox(spec.title || 'Пошаговый отладчик'); el.replaceWith(box);
+  const codeEl = h('div', { class: 'tr-code' }); const lines = dedent(spec.code).split('\n');
+  lines.forEach(l => { const d = h('div'); highlight(d, l || ' '); codeEl.append(d); });
+  const mem = h('div', { class: 'tr-mem' }); const out = h('div', { class: 'tr-out' }); const note = h('div', { class: 'tr-note' });
+  const hasOut = spec.steps.some(s => s.out != null);
+  const left = h('div', {}, codeEl, hasOut ? h('div', { class: 'tr-col', style: 'margin-top:8px' }, h('h5', {}, 'Вывод'), out) : '');
+  box.append(h('div', { class: 'tr' }, left, mem), note);
+  let i = 0, timer = null; const N = spec.steps.length;
+  const btn = (t, l, f) => h('button', { type: 'button', class: 'btn ghost sm', title: l, 'aria-label': l, onclick: f }, t);
+  const n = h('span', { class: 'stepn' });
+  const playB = btn('▶▶', 'автоплей', () => { if (timer) stop(); else { playB.textContent = '⏸'; timer = setInterval(() => { if (i < N - 1) go(i + 1); else stop(); }, 1300); } });
+  const stop = () => { clearInterval(timer); timer = null; playB.textContent = '▶▶'; };
+  box.append(h('div', { class: 'tr-ctl' }, btn('⏮', 'в начало', () => { stop(); go(0); }), btn('◀ назад', 'шаг назад', () => { stop(); go(Math.max(0, i - 1)); }), h('button', { type: 'button', class: 'btn sm', onclick: () => { stop(); go(Math.min(N - 1, i + 1)); } }, 'шаг ▶'), playB, n));
+  box.tabIndex = 0; box.addEventListener('keydown', e => { if (e.key === 'ArrowRight') { e.preventDefault(); go(Math.min(N - 1, i + 1)); } if (e.key === 'ArrowLeft') { e.preventDefault(); go(Math.max(0, i - 1)); } });
+  const valMap = st => { const m = {}; (st.st || []).forEach((f, fi) => (f.v || []).forEach(v => m['s' + fi + ':' + v[0]] = JSON.stringify(v[2]))); (st.gl || []).forEach(v => m['g:' + v[0]] = JSON.stringify(v[2])); (st.hp || []).forEach(b => m['h:' + b.id] = JSON.stringify(b.c)); return m; };
+  function cellsEl(vals, idBase, prevVals) {
+    const c = h('div', { class: 'cells idx' });
+    vals.forEach((v, k) => c.append(h('div', { class: 'cell' + (v === "'\\0'" ? ' term' : '') + (prevVals && prevVals[k] !== v ? ' chg' : ''), 'data-id': idBase + '.' + k }, String(v), h('sub', {}, String(k)))));
+    return c;
+  }
+  function varEl(v, key, prev) {
+    const [name, type, val, ex = {}] = v; const changed = prev && key in prev && prev[key] !== JSON.stringify(val);
+    const id = ex.id || name;
+    if (Array.isArray(val)) {
+      let pv = null; try { pv = prev && prev[key] ? JSON.parse(prev[key]) : null; } catch (e) { }
+      const d = h('div', { class: 'var' + (ex.dead ? ' dead' : ''), 'data-id': id, style: 'grid-template-columns:1fr' }, h('div', {}, h('span', { class: 'n' }, name), ' ', h('span', { class: 't' }, type), ex.a ? h('span', { class: 'a' }, '  @' + ex.a) : ''), cellsEl(val, id, pv));
+      return d;
+    }
+    const d = h('div', { class: 'var' + (changed ? ' chg' : '') + (ex.dead ? ' dead' : ''), 'data-id': id },
+      h('div', {}, h('span', { class: 'n' }, name), ' ', h('span', { class: 't' }, type)), h('span', { class: 'a' }, ex.a ? '@' + ex.a : ''), h('span', { class: 'v', 'data-from': ex.p || '' , 'data-dang': ex.dang ? '1' : '' }, String(val)));
+    return d;
+  }
+  function go(k) {
+    const prev = i !== k && k > 0 ? valMap(spec.steps[k - 1]) : null;
+    i = k; const st = spec.steps[i]; n.textContent = `шаг ${i + 1} / ${N}`;
+    [...codeEl.children].forEach((d, j) => d.classList.toggle('cur', j + 1 === st.l));
+    const cur = codeEl.children[st.l - 1]; if (cur) { const top = cur.offsetTop - codeEl.clientHeight / 2; codeEl.scrollTop = Math.max(0, top); }
+    note.innerHTML = st.n || ''; out.textContent = st.out ?? (i ? out.textContent : '');
+    if (st.out == null) { let o = ''; for (let j = 0; j <= i; j++) if (spec.steps[j].out != null) o = spec.steps[j].out; out.textContent = o; }
+    mem.innerHTML = '';
+    if (st.gl && st.gl.length) { const c = h('div', { class: 'tr-col' }, h('h5', {}, 'Статическая память')); const f = h('div', { class: 'frame' }); st.gl.forEach(v => f.append(varEl(v, 'g:' + v[0], prev))); c.append(f); mem.append(c); }
+    const sc = h('div', { class: 'tr-col' }, h('h5', {}, 'Стек ↓ (последний вызов сверху)'));
+    const frames = st.st || []; frames.map((f, fi) => [f, fi]).reverse().forEach(([f, fi]) => {
+      const fr = h('div', { class: 'frame' + (fi === frames.length - 1 ? ' top-f' : '') }, h('div', { class: 'fn' }, h('span', {}, f.f), h('span', { class: 'a' }, f.note || '')));
+      (f.v || []).forEach(v => fr.append(varEl(v, 's' + fi + ':' + v[0], prev)));
+      if (!(f.v || []).length) fr.append(h('div', { class: 'var' }, h('span', { class: 't' }, 'нет переменных')));
+      sc.append(fr);
+    });
+    if (!frames.length) sc.append(h('div', { class: 'vsmall' }, 'пусто'));
+    mem.append(sc);
+    if (st.hp && st.hp.length) {
+      const hc = h('div', { class: 'tr-col' }, h('h5', {}, 'Куча (динамическая память)'));
+      st.hp.forEach(b => { let pv = null; try { pv = prev && prev['h:' + b.id] ? JSON.parse(prev['h:' + b.id]) : null; } catch (e) { } hc.append(h('div', { class: 'heapb' + (b.free ? ' freed' : ''), 'data-id': b.id }, h('div', { class: 'hl' }, h('span', {}, b.l), h('span', {}, b.a ? '@' + b.a : '')), b.c ? cellsEl(b.c, b.id, pv) : '')); });
+      mem.append(hc);
+    }
+    requestAnimationFrame(arrows);
+  }
+  function arrows() {
+    $$('svg.tr-svg', mem).forEach(s => s.remove());
+    const srcs = $$('[data-from]', mem).filter(e => e.dataset.from); if (!srcs.length) return;
+    const R = mem.getBoundingClientRect(); const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('class', 'tr-svg');
+    svg.setAttribute('width', R.width); svg.setAttribute('height', R.height);
+    const defs = `<defs><marker id="ah${box._uid}" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8 z" fill="var(--pen)" stroke="none"/></marker></defs>`;
+    let html = defs;
+    for (const s of srcs) {
+      const t = mem.querySelector(`[data-id="${CSS.escape(s.dataset.from)}"]`); if (!t) continue;
+      const a = s.getBoundingClientRect(), b = t.getBoundingClientRect();
+      const x1 = a.right - R.left + 2, y1 = a.top + a.height / 2 - R.top;
+      const x2 = b.left - R.left - 2 + (b.width < 60 ? b.width / 2 + 2 : 0), y2 = b.width < 60 ? b.top - R.top - 1 : b.top + b.height / 2 - R.top;
+      const bend = Math.max(40, Math.abs(y2 - y1) / 2);
+      const d = b.width < 60 ? `M${x1},${y1} C${x1 + bend},${y1} ${x2},${y2 - bend} ${x2},${y2}` : `M${x1},${y1} C${x1 + bend},${y1} ${Math.max(x1 + bend, x2 + 40)},${y2} ${x2},${y2}`;
+      html += `<path d="${d}" class="${s.dataset.dang ? 'dang' : ''}" marker-end="url(#ah${box._uid})"/>`;
+    }
+    svg.innerHTML = html; mem.append(svg);
+  }
+  box._uid = Math.random().toString(36).slice(2, 7);
+  new ResizeObserver(() => requestAnimationFrame(arrows)).observe(mem);
+  go(0);
+};
+
+function hydrateWidgets(root) {
+  for (const el of $$('.viz-slot', root)) {
+    const kind = el.dataset.viz; let cfg = {};
+    try { cfg = JSON.parse(el.dataset.cfg || '{}'); } catch (e) { }
+    try { Widgets[kind] ? Widgets[kind](el, cfg) : el.replaceWith(h('div', { class: 'c c-ub' }, 'Нет виджета ' + kind)); } catch (e) { console.error(e); }
+  }
+  for (const s of $$('div.trace', root)) {
+    try {
+      const spec = JSON.parse($('script[type="application/json"]', s).textContent);
+      spec.code = $('script[type="text/x-cpp"]', s).textContent; spec.title = s.dataset.title || spec.title;
+      Widgets.trace(s, spec);
+    } catch (e) { console.error(e); s.replaceWith(h('div', { class: 'c c-ub' }, 'Битый трейс: ' + e.message)); }
+  }
+}
+
+/* ================= views ================= */
+const LVL = { easy: 'лёгкая', medium: 'средняя', hard: 'сложная' };
+const SRC = { sem: 'семинар', lect: 'из конспекта', lc: 'в стиле LeetCode', ai: 'от ИИ' };
+const App = {
+  view: null, ctxText: '',
+  refreshProgress() {
+    const m = Data.manifest; if (!m) return;
+    const tot = m.chapters.length; const read = m.chapters.filter(c => Store.data.read[c.id] === 1).length;
+    const solved = Object.values(Store.data.tasks).filter(t => t.solved).length;
+    const pct = Math.round(100 * (read + solved * 0.3) / (tot + (Data.tasks.length || 1) * 0.3));
+    $('#xpbar').style.width = pct + '%'; $('#xptext').textContent = pct + '%';
+    for (const a of $$('.side a[data-ch]')) { const d = $('.dot', a); const r = Store.data.read[a.dataset.ch]; d.className = 'dot' + (r === 1 ? ' full' : r ? ' half' : ''); }
+    const due = Cards.dueCount(); const b = $('#cards-badge'); b.textContent = due; b.hidden = !due;
+  },
+  rerenderSoft() { if (this.view === 'home') this.route(); },
+  buildSide() {
+    const s = $('#side'); s.innerHTML = '';
+    const nav = (href, label, extra) => h('a', { href, 'data-nav': href }, label, extra || '');
+    s.append(h('h4', {}, 'Тренажёр'),
+      nav('#practice', h('span', {}, 'Задачи с автопроверкой')),
+      nav('#seminars', h('span', {}, 'Что выведет? (семинары)')),
+      nav('#cards', h('span', {}, 'Флешкарты'), h('span', { class: 'badge', id: 'cards-badge', hidden: true }, '0')),
+      nav('#exam', h('span', {}, 'Пробный билет')),
+      nav('#sandbox', h('span', {}, 'Песочница')));
+    for (const g of Data.manifest.groups) {
+      s.append(h('h4', {}, g.title));
+      for (const c of Data.manifest.chapters.filter(c => c.group === g.id))
+        s.append(h('a', { href: '#ch' + c.id, 'data-ch': c.id, 'data-nav': '#ch' + c.id }, h('span', { class: 'num' }, c.n), h('span', {}, c.title), h('span', { class: 'dot' })));
+    }
+    s.addEventListener('click', e => { if (e.target.closest('a')) s.classList.remove('open'); });
+  },
+  markNav(hash) { for (const a of $$('.side a')) a.classList.toggle('on', a.dataset.nav === hash || (hash.startsWith('#task-') && a.dataset.nav === '#practice')); },
+  async route() {
+    const hash = location.hash || '#home'; const main = $('#main'); main.innerHTML = '';
+    this.markNav(hash); window.scrollTo(0, 0); Tutor.setCtx(null);
+    try {
+      if (hash.startsWith('#ch')) await this.chapter(hash.slice(3));
+      else if (hash.startsWith('#task-')) this.task(hash.slice(6));
+      else if (hash === '#practice') this.practice();
+      else if (hash === '#seminars' || hash.startsWith('#sem')) this.seminars(hash.startsWith('#sem') && hash !== '#seminars' ? hash.slice(4) : null);
+      else if (hash === '#cards') Cards.view();
+      else if (hash === '#exam') Exam.view();
+      else if (hash === '#sandbox') this.sandbox();
+      else this.home();
+    } catch (e) { console.error(e); main.append(h('div', { class: 'col' }, h('div', { class: 'c c-ub' }, 'Не загрузилось: ' + e.message))); }
+  },
+
+  home() {
+    this.view = 'home'; const m = Data.manifest; const main = $('#main');
+    const last = Store.data.last && Data.chapter(Store.data.last);
+    const first = m.chapters.find(c => Store.data.read[c.id] !== 1) || m.chapters[0];
+    const goto = last || first;
+    const read = m.chapters.filter(c => Store.data.read[c.id] === 1).length;
+    const solved = Object.values(Store.data.tasks).filter(t => t.solved).length;
+    const predOk = Object.values(Store.data.pred).filter(x => x === 1).length;
+    const col = h('div', { class: 'wide' });
+    col.append(h('div', { class: 'hero' },
+      h('div', { class: 'eyebrow' }, 'Программирование на C++ · модуль 1 · по «Великому конспекту»'),
+      h('h1', { html: 'Весь конспект, только <em>не скучно</em>' }),
+      h('p', {}, 'Те же 26 тем и та же строгость, но с отладчиком памяти, битами, которые можно потыкать, твоим настоящим компилятором под капотом и тьютором, который объяснит ещё раз, если не зашло.'),
+      h('div', { class: 'qrow', style: 'margin-top:16px' },
+        h('a', { class: 'btn', href: '#ch' + goto.id, style: 'text-decoration:none' }, (last ? 'Продолжить: ' : 'Начать: ') + goto.n + '. ' + goto.title),
+        h('a', { class: 'btn ghost', href: '#exam', style: 'text-decoration:none' }, 'Проверить себя билетом'))));
+    col.append(h('div', { class: 'stats' },
+      h('div', { class: 'stat' }, h('b', {}, `${read}/${m.chapters.length}`), h('span', {}, 'глав прочитано')),
+      h('div', { class: 'stat' }, h('b', {}, `${solved}/${Data.tasks.length}`), h('span', {}, 'задач решено')),
+      h('div', { class: 'stat' }, h('b', {}, `${predOk}/${Data.pred.length}`), h('span', {}, '«что выведет» отгадано')),
+      h('div', { class: 'stat' }, h('b', {}, String(Cards.dueCount())), h('span', {}, 'карточек к повторению'))));
+    for (const g of m.groups) {
+      col.append(h('h2', { class: 'grp-h' }, g.title));
+      const map = h('div', { class: 'map' });
+      for (const c of m.chapters.filter(c => c.group === g.id)) {
+        const nt = Data.tasks.filter(t => t.ch === c.id), ns = nt.filter(t => Store.data.tasks[t.id]?.solved).length;
+        const p = Store.data.read[c.id] === 1 ? (nt.length ? 50 + 50 * ns / nt.length : 100) : Store.data.read[c.id] ? 15 : 0;
+        map.append(h('a', { class: 'mcard', href: '#ch' + c.id }, h('span', { class: 'n' }, 'Глава ' + c.n), h('span', { class: 't' }, c.title), h('span', { class: 'vsmall' }, c.blurb || ''), h('span', { class: 'p' }, h('i', { style: `width:${p}%` }))));
+      }
+      col.append(map);
+    }
+    main.append(col);
+  },
+
+  async chapter(id) {
+    this.view = 'chapter'; const c = Data.chapter(id); if (!c) { location.hash = '#home'; return; }
+    const main = $('#main'); main.append(h('div', { class: 'col empty' }, h('span', { class: 'spin' }), ' загружаю главу…'));
+    let html;
+    try { html = await Data.chapterHTML(id); }
+    catch (e) { main.innerHTML = ''; main.append(h('div', { class: 'col' }, h('div', { class: 'eyebrow' }, 'Глава ' + c.n), h('h1', {}, c.title), h('div', { class: 'c c-hist', 'data-l': 'Скоро' }, 'Эта глава ещё пишется. Загляни чуть позже.'))); return; }
+    main.innerHTML = '';
+    Store.data.last = id; if (!Store.data.read[id]) Store.data.read[id] = 0.5; Store.touch();
+    const col = h('div', { class: 'col' }); const art = h('article');
+    art.innerHTML = html;
+    const idx = Data.manifest.chapters.indexOf(c), prev = Data.manifest.chapters[idx - 1], next = Data.manifest.chapters[idx + 1];
+    const head = h('header', { class: 'ch-head' }, h('div', { class: 'eyebrow' }, `Глава ${c.n} · ${Data.manifest.groups.find(g => g.id === c.group).title}`), h('h1', {}, c.title),
+      h('div', { class: 'meta' }, h('span', {}, `≈ ${c.min || 15} мин`), h('span', {}, `стр. ${c.pages || ''} конспекта`)));
+    if (c.lead) head.append(h('p', { class: 'lead', html: c.lead }));
+    const toc = h('nav', { class: 'toc-mini', 'aria-label': 'Разделы главы' });
+    $$('section', art).forEach((s, i) => { const t = $('h2', s); if (!t) return; s.id = s.id || 's' + i; toc.append(h('a', { href: '#ch' + id, onclick: e => { e.preventDefault(); s.scrollIntoView({ behavior: 'smooth' }); } }, t.textContent.replace(/\s+/g, ' ').trim())); });
+    head.append(toc);
+    col.append(head, art); main.append(col);
+    hydrateQuizzes(art, id); hydrateWidgets(art); hydrateCode(art);
+    // AI buttons per section
+    for (const s of $$('section', art)) {
+      const t = $('h2', s); if (!t) continue;
+      const btn = h('button', { type: 'button', class: 'ai-mini', title: 'Попросить ИИ объяснить раздел проще' }, '✦ объясни проще');
+      t.append(h('span', { class: 'sec-tools' }, btn));
+      btn.onclick = () => Tutor.explainSection(s, c);
+    }
+    // chapter practice
+    const tasks = Data.tasks.filter(t => t.ch === id), preds = Data.pred.filter(p => p.ch === id), cards = Data.cards.filter(x => x.ch === id);
+    if (tasks.length || preds.length || cards.length) {
+      const pr = h('div', { class: 'chapter-practice' }, h('h3', {}, 'Закрепим главу'));
+      const ul = h('div', { class: 'tlist' });
+      tasks.forEach(t => ul.append(taskItem(t)));
+      pr.append(ul);
+      const links = h('div', { class: 'qrow', style: 'margin-top:10px' });
+      if (preds.length) links.append(h('a', { class: 'btn ghost sm', href: '#seminars', style: 'text-decoration:none', onclick: () => { App._predFilter = id; } }, `«Что выведет» по главе: ${preds.length}`));
+      if (cards.length) links.append(h('a', { class: 'btn ghost sm', href: '#cards', style: 'text-decoration:none', onclick: () => { Cards.deck = id; } }, `Флешкарты главы: ${cards.length}`));
+      pr.append(links); col.append(pr);
+    }
+    const doneBtn = h('button', { type: 'button', class: 'btn ' + (Store.data.read[id] === 1 ? 'ok' : '') }, Store.data.read[id] === 1 ? '✓ Глава пройдена' : 'Отметить главу пройденной');
+    doneBtn.onclick = () => { Store.data.read[id] = 1; Store.touch(); doneBtn.className = 'btn ok'; doneBtn.textContent = '✓ Глава пройдена'; };
+    col.append(h('div', { class: 'read-mark' }, doneBtn));
+    const np = h('nav', { class: 'next-prev' });
+    if (prev) np.append(h('a', { href: '#ch' + prev.id }, h('small', {}, '← назад'), prev.n + '. ' + prev.title));
+    if (next) np.append(h('a', { href: '#ch' + next.id, style: 'text-align:right' }, h('small', {}, 'дальше →'), next.n + '. ' + next.title));
+    col.append(np);
+    const end = h('div'); col.append(end);
+    new IntersectionObserver((en, ob) => { if (en.some(e => e.isIntersecting)) { if (Store.data.read[id] !== 1) { Store.data.read[id] = 1; Store.touch(); doneBtn.className = 'btn ok'; doneBtn.textContent = '✓ Глава пройдена'; } ob.disconnect(); } }).observe(end);
+    Tutor.setCtx(() => `Глава ${c.n} «${c.title}» конспекта. Текст главы (сокращённо):\n` + art.innerText.slice(0, 9000));
+  },
+
+  practice() {
+    this.view = 'practice'; const main = $('#main'); const col = h('div', { class: 'wide' });
+    col.append(h('div', { class: 'eyebrow' }, 'Тренажёр'), h('h1', {}, 'Задачи с автопроверкой'),
+      h('p', { class: 'vsmall', style: 'font-size:16px;max-width:70ch' }, 'Пишешь код — компилятор на твоём компьютере собирает его и гоняет по тестам. Задачи из семинаров, из примеров конспекта и в стиле LeetCode.'));
+    const f = App._pf || (App._pf = { ch: '', lvl: '', src: '', st: '' });
+    const chSel = h('select', { 'aria-label': 'глава' }, h('option', { value: '' }, 'все главы'), ...Data.manifest.chapters.map(c => h('option', { value: c.id, selected: f.ch === c.id }, c.n + '. ' + c.title)));
+    const lvSel = h('select', { 'aria-label': 'сложность' }, h('option', { value: '' }, 'любая сложность'), ...Object.entries(LVL).map(([k, v]) => h('option', { value: k, selected: f.lvl === k }, v)));
+    const srSel = h('select', { 'aria-label': 'источник' }, h('option', { value: '' }, 'любой источник'), ...Object.entries(SRC).filter(([k]) => k !== 'ai').map(([k, v]) => h('option', { value: k, selected: f.src === k }, v)));
+    const stSel = h('select', { 'aria-label': 'статус' }, h('option', { value: '' }, 'все'), h('option', { value: 'todo', selected: f.st === 'todo' }, 'нерешённые'), h('option', { value: 'done', selected: f.st === 'done' }, 'решённые'));
+    const list = h('div', { class: 'tlist' });
+    const draw = () => {
+      Object.assign(f, { ch: chSel.value, lvl: lvSel.value, src: srSel.value, st: stSel.value });
+      list.innerHTML = '';
+      const items = Data.tasks.filter(t => (!f.ch || t.ch === f.ch) && (!f.lvl || t.lvl === f.lvl) && (!f.src || t.src === f.src) && (!f.st || (f.st === 'done') === !!Store.data.tasks[t.id]?.solved));
+      items.forEach(t => list.append(taskItem(t)));
+      if (!items.length) list.append(h('div', { class: 'empty' }, 'Под фильтр ничего не попало.'));
+    };
+    [chSel, lvSel, srSel, stSel].forEach(s => s.onchange = draw);
+    const gen = h('button', { type: 'button', class: 'btn ai sm' }, '✦ Сгенерировать новую задачу');
+    gen.onclick = () => AITask.generate(chSel.value);
+    col.append(h('div', { class: 'filters' }, chSel, lvSel, srSel, stSel, gen), list);
+    main.append(col); draw();
+  },
+
+  task(id) {
+    this.view = 'task'; const t = Data.task(id) || AITask.get(id); const main = $('#main');
+    if (!t) { main.append(h('div', { class: 'col empty' }, 'Задача не найдена. ', h('a', { href: '#practice' }, 'К списку'))); return; }
+    const st = Store.data.tasks[id] || (Store.data.tasks[id] = { solved: false, tries: 0 });
+    const ch = Data.chapter(t.ch);
+    const left = h('div', { class: 'panel' });
+    left.append(h('a', { href: '#practice', class: 'vsmall' }, '← все задачи'),
+      h('h1', {}, t.title),
+      h('div', { class: 'tags' }, h('span', { class: 'tag ' + t.lvl }, LVL[t.lvl] || t.lvl), h('span', { class: 'tag sem' }, SRC[t.src] || t.src), ch ? h('a', { class: 'tag', href: '#ch' + ch.id, style: 'text-decoration:none' }, 'гл. ' + ch.n + ' ' + ch.title) : '', st.solved ? h('span', { class: 'tag done' }, '✓ решено') : ''),
+      h('div', { class: 'qq', html: t.text, style: 'margin-top:12px' }));
+    if (t.in) left.append(h('h3', {}, 'Ввод'), h('div', { html: t.in }));
+    if (t.out) left.append(h('h3', {}, 'Вывод'), h('div', { html: t.out }));
+    if (t.mode === 'func') left.append(h('div', { class: 'c c-tip', html: 'Напиши только то, что просят (функцию/класс). Свой <code>main</code> не нужен — проверяющий <code>main</code> допишется сам. Для отладки используй «Запустить», там твой код запускается вместе с проверочным <code>main</code>.' }));
+    const shown = t.tests.slice(0, t.show ?? 2);
+    if (shown.length) {
+      left.append(h('h3', {}, 'Примеры'));
+      shown.forEach((x, i) => left.append(h('div', { class: 'tw' }, h('table', {}, h('tr', {}, h('th', {}, 'Ввод #' + (i + 1)), h('th', {}, 'Вывод')), h('tr', {}, h('td', {}, h('pre', { class: 'mono', style: 'margin:0' }, x.i || '(пусто)')), h('td', {}, h('pre', { class: 'mono', style: 'margin:0' }, x.o)))))));
+    }
+    const aiBox = h('div');
+    const hintB = h('button', { type: 'button', class: 'btn ai sm' }, '✦ Подсказка');
+    const solB = h('button', { type: 'button', class: 'btn ghost sm' }, 'Показать решение');
+    const solBox = h('div');
+    solB.onclick = () => {
+      if (!st.solved && (st.tries || 0) < 2 && !solB._sure) { solB._sure = true; solB.textContent = 'Точно? Сначала попробуй хотя бы 2 раза. Нажми ещё раз'; return; }
+      solBox.innerHTML = ''; const c = h('div', { class: 'code' }); const p = h('pre'); highlight(p, t.sol); c.append(h('div', { class: 'bar' }, h('span', {}, 'эталонное решение'), h('span', { class: 'sp' }), h('button', { type: 'button', onclick: () => ed.setValue(t.sol) }, 'вставить в редактор')), p);
+      solBox.append(c); if (t.solNote) solBox.append(h('div', { class: 'why', html: t.solNote }));
+    };
+    left.append(h('div', { class: 'qrow', style: 'margin-top:16px' }, hintB, solB), aiBox, solBox);
+    if (t.hint) { const hb = h('button', { type: 'button', class: 'btn ghost sm' }, 'Подсказка из конспекта'); hb.onclick = () => { aiBox.prepend(h('div', { class: 'why', html: t.hint })); hb.remove(); }; $('.qrow', left).prepend(hb); }
+
+    const right = h('div', { class: 'panel' });
+    const draftKey = 'draft-' + id; let draft = null; try { draft = localStorage.getItem(draftKey); } catch (e) { }
+    const host = h('div', { class: 'edwrap' }); right.append(host);
+    const ed = makeEditor(host, draft || st.code || t.starter || '', { height: '420px', onRun: () => runB.click() });
+    let dt; ed.on && ed.on('change', () => { clearTimeout(dt); dt = setTimeout(() => { try { localStorage.setItem(draftKey, ed.getValue()); } catch (e) { } }, 500); });
+    const stdin = h('textarea', { class: 'qin', placeholder: 'свой ввод для «Запустить»', spellcheck: 'false', 'aria-label': 'свой ввод', style: 'width:100%' }); stdin.value = shown[0]?.i || '';
+    const out = h('pre', { class: 'out', style: 'border:1px solid var(--line);border-radius:8px;background:var(--code-bg)' }, h('span', { class: 'dim' }, 'Тут появится вывод. Ctrl/⌘+Enter — запустить.'));
+    const runB = h('button', { type: 'button', class: 'btn ghost' }, '▶ Запустить');
+    const subB = h('button', { type: 'button', class: 'btn' }, '✓ Проверить на тестах');
+    const revB = h('button', { type: 'button', class: 'btn ai' }, '✦ Ревью кода');
+    const tests = h('div', { class: 'tests' });
+    const full = () => t.mode === 'func' ? ed.getValue() + '\n\n// ---- проверяющий main ----\n' + t.harness : ed.getValue();
+    runB.onclick = async () => {
+      runB.disabled = true; out.innerHTML = '<span class="dim"><span class="spin"></span> ' + 'компилирую…' + '</span>';
+      try { renderOutput(out, await Runner.run(full(), stdin.value)); } catch (e) { out.textContent = e.message; }
+      runB.disabled = false;
+    };
+    let lastReport = '';
+    subB.onclick = async () => {
+      subB.disabled = true; tests.innerHTML = ''; out.innerHTML = '<span class="dim"><span class="spin"></span> ' + 'компилирую…' + '</span>';
+      st.tries = (st.tries || 0) + 1; st.code = ed.getValue();
+      try {
+        const comp = await Runner.compile(full());
+        if (!comp.ok) { renderOutput(out, { stage: 'compile', log: comp.log }); lastReport = 'Ошибка компиляции:\n' + comp.log; subB.disabled = false; Store.touch(); return; }
+        out.innerHTML = ''; out.append(h('span', { class: 'dim' }, comp.log ? comp.log + '\n' : ''), h('span', { class: 'dim' }, 'Компиляция ок. Гоняю тесты…'));
+        let pass = 0; const rep = [];
+        for (let i = 0; i < t.tests.length; i++) {
+          const x = t.tests[i]; const r = await Runner.exec(comp, x.i || '');
+          const ok = !r.timeout && !r.trap && compareOut(r.stdout, x.o, t.check);
+          if (ok) pass++;
+          const hidden = i >= (t.show ?? 2);
+          const d = h('details', { class: 'test ' + (ok ? 'pass' : 'fail') }, h('summary', {}, `${ok ? '✓' : '✗'} тест ${i + 1}${hidden ? ' (скрытый)' : ''}${r.timeout ? ' — TL' : r.trap ? ' — RE' : ''}`));
+          if (!ok || !hidden) d.append(h('pre', {}, `ввод:\n${x.i || '(пусто)'}\nожидалось:\n${x.o}\nполучено:\n${r.stdout}${r.stderr ? '\nstderr:\n' + r.stderr : ''}${r.trap ? '\nпадение: ' + r.trap : ''}`));
+          tests.append(d);
+          if (!ok) rep.push(`тест ${i + 1}: ввод «${x.i}», ожидалось «${x.o}», получено «${r.stdout}»${r.timeout ? ' (превышено время)' : ''}${r.trap ? ' (падение ' + r.trap + ')' : ''}`);
+          if (!ok && !t.allTests) break;
+        }
+        const all = pass === t.tests.length;
+        out.innerHTML = ''; out.append(h('span', { class: all ? 'ok' : 'err' }, all ? `Все ${pass} тестов пройдены. Красава 🎉` : `Пройдено ${pass} из ${t.tests.length}. Первый упавший тест развернут ниже.`));
+        lastReport = all ? 'Все тесты пройдены.' : rep.join('\n');
+        if (all && !st.solved) { st.solved = true; toast('Задача решена! +1 в копилку'); }
+        Store.touch();
+      } catch (e) { out.textContent = e.message; }
+      subB.disabled = false;
+    };
+    hintB.onclick = () => Tutor.hint(t, ed.getValue(), lastReport, aiBox);
+    revB.onclick = () => Tutor.review(t, ed.getValue(), lastReport, aiBox, left);
+    right.append(h('div', { class: 'ed-tools' }, runB, subB, revB, h('span', { class: 'compiler-state', id: 'cstate' }, Runner.status())),
+      h('details', {}, h('summary', { class: 'vsmall', style: 'cursor:pointer' }, 'свой ввод для «Запустить»'), stdin), out, tests);
+    main.append(h('div', { class: 'wide' }, h('div', { class: 'pgrid' }, left, right)));
+    Tutor.setCtx(() => `Задача «${t.title}».\nУсловие: ${h('div', { html: t.text + (t.in || '') + (t.out || '') }).textContent}\n\nТекущий код студента:\n${ed.getValue()}\n\nПоследний результат проверки: ${lastReport || 'ещё не проверял'}`);
+  },
+
+  seminars(sem) {
+    this.view = 'seminars'; const main = $('#main'); const col = h('div', { class: 'col' });
+    col.append(h('div', { class: 'eyebrow' }, 'Тренажёр'), h('h1', {}, 'Что выведет?'),
+      h('p', { class: 'vsmall', style: 'font-size:16px' }, 'Вопросы из семинаров: угадай вывод, найди UB, объясни. Любой код можно реально запустить и сравнить со своей догадкой.'));
+    const sems = [...new Set(Data.pred.map(p => p.sem))].sort((a, b) => a - b);
+    const chFilter = App._predFilter; App._predFilter = null;
+    let cur = sem ? +sem : chFilter ? null : sems[0];
+    const tabs = h('div', { class: 'filters' });
+    const list = h('div');
+    const draw = () => {
+      tabs.innerHTML = '';
+      for (const s of sems) {
+        const items = Data.pred.filter(p => p.sem === s); const ok = items.filter(p => Store.data.pred[p.id] === 1).length;
+        const b = h('button', { type: 'button', class: 'btn sm ' + (s === cur ? '' : 'ghost') }, `Семинар ${s} · ${ok}/${items.length}`);
+        b.onclick = () => { cur = s; draw(); }; tabs.append(b);
+      }
+      list.innerHTML = '';
+      const items = Data.pred.filter(p => cur ? p.sem === cur : p.ch === chFilter);
+      const title = cur ? (Data.manifest.seminars || {})[cur] : 'Вопросы по главе ' + (Data.chapter(chFilter)?.n || '');
+      if (title) list.append(h('h2', { style: 'font-size:20px;margin:18px 0 0' }, title));
+      for (const p of items) list.append(predCard(p));
+    };
+    col.append(tabs, list); main.append(col); draw();
+  },
+
+  sandbox(code, stdin) {
+    this.view = 'sandbox'; const main = $('#main'); const col = h('div', { class: 'wide' });
+    let saved = null; try { saved = localStorage.getItem('sandbox'); } catch (e) { }
+    const init = code || App._sb?.code || saved || '#include <iostream>\n\nint main() {\n    std::cout << "Hello, world!\\n";\n    return 0;\n}\n';
+    const sin = stdin ?? App._sb?.stdin ?? ''; App._sb = null;
+    col.append(h('div', { class: 'eyebrow' }, 'Песочница'), h('h1', { style: 'margin:4px 0 12px' }, 'Пиши что хочешь'));
+    const host = h('div', { class: 'edwrap' });
+    const ta = h('textarea', { class: 'qin', placeholder: 'stdin', spellcheck: 'false', 'aria-label': 'ввод программы', style: 'width:100%;min-height:90px' }); ta.value = sin;
+    const out = h('pre', { class: 'out', style: 'border:1px solid var(--line);border-radius:8px;background:var(--code-bg);min-height:120px' }, h('span', { class: 'dim' }, 'Ctrl/⌘+Enter — запустить'));
+    const run = h('button', { type: 'button', class: 'btn' }, '▶ Запустить');
+    const flags = h('select', { class: 'qin', style: 'max-width:180px;flex:none', 'aria-label': 'оптимизация' }, h('option', { value: '-O0' }, '-O0 (как в отладке)'), h('option', { value: '-O2' }, '-O2 (как в релизе)'), h('option', { value: '-O0 san' }, '-O0 + санитайзеры (ловят UB)'));
+    const grid = h('div', { class: 'pgrid' }, h('div', { class: 'panel' }, host), h('div', { class: 'panel' }, h('div', { class: 'ed-tools' }, run, flags, h('span', { class: 'compiler-state' }, Runner.status())), h('div', { class: 'vsmall' }, 'Ввод (stdin)'), ta, h('div', { class: 'vsmall', style: 'margin-top:8px' }, 'Вывод'), out));
+    col.append(grid); main.append(col);
+    const ed = makeEditor(host, init, { height: '62vh', onRun: () => run.click() });
+    ed.on && ed.on('change', () => { try { localStorage.setItem('sandbox', ed.getValue()); } catch (e) { } });
+    run.onclick = async () => { run.disabled = true; out.innerHTML = '<span class="dim"><span class="spin"></span> ' + 'компилирую…' + '</span>'; try { renderOutput(out, await Runner.run(ed.getValue(), ta.value, { opt: flags.value })); } catch (e) { out.textContent = e.message; } run.disabled = false; };
+    Tutor.setCtx(() => 'Студент экспериментирует в песочнице. Его код:\n' + ed.getValue() + '\nПоследний вывод:\n' + out.textContent.slice(0, 3000));
+  },
+  openSandbox(code, stdin) { App._sb = { code, stdin }; if (location.hash === '#sandbox') this.route(); else location.hash = '#sandbox'; }
+};
+
+function compareOut(got, exp, mode) {
+  if (mode === 'tokens' || mode === 'float') {
+    const a = String(got).trim().split(/\s+/).filter(Boolean), b = String(exp).trim().split(/\s+/).filter(Boolean);
+    if (a.length !== b.length) return false;
+    return a.every((x, i) => mode === 'float' && !isNaN(+x) && !isNaN(+b[i]) ? Math.abs(+x - +b[i]) <= 1e-6 * Math.max(1, Math.abs(+b[i])) : x === b[i]);
+  }
+  return normOut(got) === normOut(exp);
+}
+function taskItem(t) {
+  const s = Store.data.tasks[t.id];
+  return h('a', { class: 'titem', href: '#task-' + t.id },
+    h('span', { class: 'chk' + (s?.solved ? ' on' : '') }, s?.solved ? '✓' : ''),
+    h('span', { style: 'flex:1;min-width:0' }, h('div', { class: 'tt' }, t.title), h('div', { class: 'ts' }, `гл. ${Data.chapter(t.ch)?.n ?? '?'} · ${SRC[t.src] || ''}`)),
+    h('span', { class: 'tag ' + t.lvl }, LVL[t.lvl] || ''));
+}
+function predCard(p) {
+  const wrap = h('div', { id: 'p-' + p.id });
+  const q = buildQuiz({ ...p, q: `<b class="mono" style="color:var(--pen)">${p.n}</b> ${p.q}` }, 'pred-' + p.id, { noStore: true, label: p.type === 'out' ? 'Что выведет?' : 'Вопрос', onAnswer: ok => { if (ok || Store.data.pred[p.id] !== 1) Store.data.pred[p.id] = ok ? 1 : 0; Store.touch(); } });
+  if (Store.data.pred[p.id] === 1) $('.st', q).textContent = '✓ решено';
+  if (p.code && p.run !== false) {
+    const full = p.wrap === 'inc' ? WRAP_HEAD + dedent(p.code) : p.wrap ? wrapMain(dedent(p.code)) : dedent(p.code);
+    const out = h('pre', { class: 'out', hidden: true, style: 'border:1px dashed var(--line);border-radius:8px;margin-top:8px' });
+    const b = h('button', { type: 'button', class: 'btn ghost sm' }, '▶ запустить по-настоящему');
+    b.onclick = async () => { out.hidden = false; b.disabled = true; out.innerHTML = '<span class="dim"><span class="spin"></span> компилирую…</span>'; try { const r = await Runner.run(full, p.stdin || ''); renderOutput(out, r); if (p.ub) out.append(h('span', { class: 'err' }, '\n⚠ Тут UB: этот вывод — лишь один из возможных, на другом компиляторе/флагах будет иначе.')); } catch (e) { out.textContent = e.message; } b.disabled = false; };
+    const tb = h('button', { type: 'button', class: 'btn ai sm' }, '✦ разобрать с ИИ');
+    tb.onclick = () => Tutor.open(`Разбери, пожалуйста, вопрос с семинара ${p.n}: ${h('div', { html: p.q }).textContent}\n\nКод:\n${dedent(p.code || '')}\n\nОбъясни пошагово, что происходит и почему.`);
+    q.append(h('div', { class: 'qrow', style: 'margin-top:8px' }, b, tb), out);
+  }
+  wrap.append(q); return wrap;
+}
+
+/* ================= flashcards (Leitner) ================= */
+const DAY = 864e5, BOX_INT = [0, 1, 2, 4, 8, 16, 32].map(d => d * DAY);
+const Cards = {
+  deck: '',
+  state(id) { return Store.data.cards[id] || { box: 0, due: 0 }; },
+  dueCount() { const now = Date.now(); return (Data.cards || []).filter(c => { const s = Store.data.cards[c.id]; return !s || s.due <= now; }).length; },
+  view() {
+    App.view = 'cards'; const main = $('#main'); const col = h('div', { class: 'col' });
+    const deckSel = h('select', { class: 'qin', style: 'max-width:320px;flex:none', 'aria-label': 'колода' }, h('option', { value: '' }, 'все главы'), ...Data.manifest.chapters.filter(c => Data.cards.some(x => x.ch === c.id)).map(c => h('option', { value: c.id, selected: this.deck === c.id }, c.n + '. ' + c.title)));
+    const modeSel = h('select', { class: 'qin', style: 'max-width:220px;flex:none', 'aria-label': 'режим' }, h('option', { value: 'due' }, 'только к повторению'), h('option', { value: 'all' }, 'все карточки подряд'));
+    col.append(h('div', { class: 'eyebrow' }, 'Тренажёр'), h('h1', {}, 'Флешкарты'),
+      h('p', { class: 'vsmall', style: 'font-size:16px' }, 'Определения, правила и ловушки из конспекта. Интервальное повторение: что помнишь — вернётся через 1, 2, 4, 8… дней, что забыл — сегодня же ещё раз.'),
+      h('div', { class: 'qrow' }, deckSel, modeSel));
+    const stage = h('div'); col.append(stage); main.append(col);
+    let queue = [];
+    const build = () => {
+      this.deck = deckSel.value; const now = Date.now();
+      queue = Data.cards.filter(c => (!this.deck || c.ch === this.deck) && (modeSel.value === 'all' || (this.state(c.id).due <= now)));
+      queue.sort((a, b) => this.state(a.id).box - this.state(b.id).box || Math.random() - .5);
+      next();
+    };
+    const next = () => {
+      stage.innerHTML = '';
+      if (!queue.length) { stage.append(h('div', { class: 'empty' }, h('p', { style: 'font-size:20px' }, '🎉 На сегодня всё.'), h('p', {}, 'Карточки вернутся, когда подойдёт срок. Можно переключиться на «все карточки подряд».'))); App.refreshProgress(); return; }
+      const c = queue[0]; const s = this.state(c.id); const chn = Data.chapter(c.ch);
+      const fc = h('div', { class: 'fc', tabIndex: 0, role: 'button', 'aria-label': 'перевернуть карточку' },
+        h('div', { class: 'front' }, h('div', { class: 'lab' }, `гл. ${chn?.n} · коробка ${s.box} · осталось ${queue.length}`), h('div', { class: 'body', html: c.f }), h('div', { class: 'vsmall' }, 'клик или пробел — перевернуть')),
+        h('div', { class: 'back' }, h('div', { class: 'lab' }, 'ответ'), h('div', { class: 'body', html: c.b })));
+      const flip = () => fc.classList.toggle('flip');
+      fc.onclick = flip; fc.onkeydown = e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); flip(); } };
+      const grade = g => {
+        const st = { ...s, ts: Date.now() };
+        if (g === 0) { st.box = 0; st.due = Date.now(); queue.push(queue.shift()); }
+        else if (g === 1) { st.box = Math.max(1, s.box); st.due = Date.now() + BOX_INT[st.box] / 2; queue.shift(); }
+        else { st.box = Math.min(6, s.box + 1); st.due = Date.now() + BOX_INT[st.box]; queue.shift(); }
+        Store.data.cards[c.id] = st; Store.touch(); next();
+      };
+      stage.append(h('div', { class: 'fc-wrap' }, fc), h('div', { class: 'fc-btns' },
+        h('button', { type: 'button', class: 'btn warn', onclick: () => grade(0) }, 'Не помню'),
+        h('button', { type: 'button', class: 'btn ghost', onclick: () => grade(1) }, 'С трудом'),
+        h('button', { type: 'button', class: 'btn ok', onclick: () => grade(2) }, 'Помню')));
+      if (c.ch) stage.append(h('p', { class: 'vsmall', style: 'text-align:center;margin-top:14px' }, h('a', { href: '#ch' + c.ch }, 'перечитать главу')));
+      fc.focus({ preventScroll: true });
+    };
+    deckSel.onchange = build; modeSel.onchange = build; build();
+  }
+};
+
+/* ================= пробный билет ================= */
+const Exam = {
+  view() {
+    App.view = 'exam'; const main = $('#main'); const col = h('div', { class: 'col' }); main.append(col);
+    col.append(h('div', { class: 'eyebrow' }, 'Тренажёр'), h('h1', {}, 'Пробный билет'));
+    const past = Store.data.exams || [];
+    col.append(h('p', {}, 'Билет собирается случайно: 1 теоретический вопрос (ответ оценит ИИ по конспекту), 3 «что выведет» и 1 задача на код с автотестами. 40 минут. Можно ограничить темы.'));
+    const chs = Data.manifest.chapters;
+    const fromSel = h('select', { class: 'qin', style: 'max-width:300px;flex:none', 'aria-label': 'темы до главы' }, ...chs.map(c => h('option', { value: c.n, selected: c.n === chs[chs.length - 1].n }, 'темы 1–' + c.n + ' (до «' + c.title + '»)')));
+    const go = h('button', { type: 'button', class: 'btn' }, 'Тянуть билет');
+    col.append(h('div', { class: 'qrow' }, fromSel, go));
+    if (past.length) {
+      col.append(h('h2', { style: 'font-size:20px;margin-top:30px' }, 'Прошлые попытки'));
+      const tb = h('table', {}, h('tr', {}, h('th', {}, 'Когда'), h('th', {}, 'Темы'), h('th', {}, 'Баллы')));
+      past.slice(-10).reverse().forEach(e => tb.append(h('tr', {}, h('td', {}, new Date(e.ts).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })), h('td', {}, '1–' + e.upto), h('td', {}, h('b', {}, e.score + ' / 100')))));
+      col.append(h('div', { class: 'tw' }, tb));
+    }
+    go.onclick = () => this.start(+fromSel.value);
+  },
+  pick(arr, n) { const a = [...arr]; for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a.slice(0, n); },
+  start(upto) {
+    const ok = id => (Data.chapter(id)?.n ?? 99) <= upto;
+    const th = this.pick(Data.theory.filter(t => ok(t.ch)), 1)[0];
+    const pr = this.pick(Data.pred.filter(p => ok(p.ch) && p.type === 'out' && !p.ub), 3);
+    const tk = this.pick(Data.tasks.filter(t => ok(t.ch) && t.lvl !== 'hard' && t.mode !== 'free'), 1)[0];
+    const main = $('#main'); main.innerHTML = ''; const col = h('div', { class: 'col' }); main.append(col);
+    const timer = h('span', { class: 'timer' }); const end = Date.now() + 40 * 60e3;
+    const tick = () => { const left = Math.max(0, end - Date.now()); timer.textContent = String(Math.floor(left / 60e3)).padStart(2, '0') + ':' + String(Math.floor(left / 1e3) % 60).padStart(2, '0'); timer.classList.toggle('low', left < 5 * 60e3); if (!left) { clearInterval(this.iv); submit(); } };
+    clearInterval(this.iv); this.iv = setInterval(tick, 1000); tick();
+    col.append(h('div', { class: 'qrow', style: 'justify-content:space-between' }, h('h1', { style: 'margin:0' }, 'Билет'), timer));
+    const res = { pred: {} };
+    let thA = null;
+    if (th) { col.append(h('h2', { style: 'font-size:20px' }, '1. Теория · 30 баллов'), h('div', { class: 'quiz' }, h('div', { class: 'qq', html: th.q }), thA = h('textarea', { class: 'qin', style: 'width:100%;min-height:180px;font-family:var(--f-body);margin-top:10px', placeholder: 'Ответь своими словами, как на устном. Примеры кода приветствуются.' }))); }
+    col.append(h('h2', { style: 'font-size:20px' }, '2. Что выведет · 3 × 10 баллов'));
+    pr.forEach(p => {
+      const box = h('div', { class: 'quiz' }, h('div', { class: 'qq', html: p.q }));
+      const c = h('div', { class: 'code' }); const pre = h('pre'); highlight(pre, dedent(p.code || '')); c.append(pre); box.append(c);
+      const inp = String([].concat(p.ans)[0]).includes('\n') ? h('textarea', { class: 'qin', style: 'width:100%' }) : h('input', { class: 'qin', style: 'width:100%', placeholder: 'вывод (или CE / UB)' });
+      box.append(inp); col.append(box); res.pred[p.id] = inp;
+    });
+    let ed = null;
+    if (tk) {
+      col.append(h('h2', { style: 'font-size:20px' }, '3. Код · 40 баллов'), h('div', { class: 'quiz' }, h('div', { class: 'qq' }, h('b', {}, tk.title)), h('div', { html: tk.text }), tk.in ? h('div', { html: '<b>Ввод:</b> ' + tk.in }) : '', tk.out ? h('div', { html: '<b>Вывод:</b> ' + tk.out }) : '', tk.mode === 'func' ? h('p', { class: 'vsmall' }, 'Свой main не нужен.') : ''));
+      const host = h('div', { class: 'edwrap' }); col.append(host); ed = makeEditor(host, tk.starter || '', { height: '320px' });
+    }
+    const sub = h('button', { type: 'button', class: 'btn', style: 'margin-top:20px' }, 'Сдать билет');
+    const report = h('div'); col.append(sub, report);
+    const submit = async () => {
+      if (sub.disabled) return; sub.disabled = true; clearInterval(this.iv);
+      report.innerHTML = '<p class="vsmall"><span class="spin"></span> проверяю…</p>';
+      let score = 0; const lines = [];
+      for (const p of pr) {
+        const v = res.pred[p.id].value; const ok = [].concat(p.ans).some(a => normOut(a) === normOut(v) || normAns(a) === normAns(v));
+        if (ok) score += 10; lines.push(h('div', { class: 'why ' + (ok ? 'good' : 'bad'), html: `<span class="v">${p.n}: ${ok ? '+10' : '0'}</span> правильный ответ: <code>${esc([].concat(p.ans)[0])}</code>. ${p.why || ''}` }));
+      }
+      if (tk && ed) {
+        let pass = 0, log = '';
+        try {
+          const full = tk.mode === 'func' ? ed.getValue() + '\n' + tk.harness : ed.getValue();
+          const comp = await Runner.compile(full);
+          if (comp.ok) for (const x of tk.tests) { const r = await Runner.exec(comp, x.i || ''); if (!r.timeout && !r.trap && compareOut(r.stdout, x.o, tk.check)) pass++; }
+          else log = 'не скомпилировалось';
+        } catch (e) { log = e.message; }
+        const pts = Math.round(40 * pass / tk.tests.length); score += pts;
+        lines.push(h('div', { class: 'why ' + (pts === 40 ? 'good' : 'bad'), html: `<span class="v">Код: +${pts}</span> тестов пройдено ${pass}/${tk.tests.length}. ${esc(log)} <a href="#task-${tk.id}">открыть задачу</a>` }));
+      }
+      if (th) {
+        const g = await Tutor.gradeTheory(th, thA.value);
+        score += g.score; lines.unshift(h('div', { class: 'why ' + (g.score >= 20 ? 'good' : 'bad') }, h('span', { class: 'v' }, `Теория: +${g.score}`), h('div', { html: md(g.feedback) }), h('details', {}, h('summary', {}, 'эталонный ответ по конспекту'), h('div', { html: th.key }))));
+      }
+      report.innerHTML = '';
+      const mark = score >= 80 ? 'отл' : score >= 60 ? 'хор' : score >= 40 ? 'удовл' : 'неуд';
+      report.append(h('div', { class: 'stat', style: 'margin-top:20px' }, h('div', { class: 'grade' }, score + ' / 100'), h('span', {}, `≈ «${mark}». ` + (score >= 80 ? 'На экзамен можно идти с чистой совестью.' : 'Глянь разбор ниже и перечитай главы, где посыпался.'))), ...lines);
+      Store.data.exams.push({ ts: Date.now(), upto, score }); Store.touch();
+    };
+    sub.onclick = submit;
+    Tutor.setCtx(() => 'Студент решает пробный билет. Не подсказывай ответы на билет, пока он не сдан — можно только объяснять теорию в общем виде.');
+  }
+};
+
+/* ================= AI tutor ================= */
+/* ================= LocalAI: Anthropic или OpenAI API через server.py (ключ живёт только на сервере) ================= */
+const LocalAI = Object.assign(async function sample(input, opts = {}) {
+  const msgs = typeof input === 'string' ? [{ role: 'user', content: input }] : input.map(m => ({ role: m.role, content: m.content }));
+  const tools = opts.tools || [];
+  const apiTools = tools.map(t => ({ name: t.name, description: t.description, input_schema: t.inputSchema || { type: 'object', properties: {} } }));
+  let text = '';
+  for (let round = 0; round < 6; round++) {
+    if (opts.signal?.aborted) throw { code: 'cancelled', text };
+    let r, j;
+    try {
+      r = await fetch('/api/ai', { method: 'POST', signal: opts.signal, headers: { 'Content-Type': 'application/json', 'X-PVK': '1' },
+        body: JSON.stringify({ messages: msgs, tools: apiTools.length ? apiTools : undefined, max_tokens: opts.maxTokens || 4096 }) });
+      j = await r.json();
+    } catch (e) { throw { code: e.name === 'AbortError' ? 'cancelled' : 'network', message: e.message, text }; }
+    if (!r.ok || j.error) throw { code: j?.error?.type || 'http', message: j?.error?.message || ('HTTP ' + r.status), text };
+    const blocks = j.content || [];
+    const t = blocks.filter(b => b.type === 'text').map(b => b.text).join('');
+    if (t) { text += (text ? '\n\n' : '') + t; opts.onText && opts.onText({ text, delta: t }); }
+    const calls = blocks.filter(b => b.type === 'tool_use');
+    if (j.stop_reason !== 'tool_use' || !calls.length) return { text, truncated: j.stop_reason === 'max_tokens' };
+    msgs.push({ role: 'assistant', content: blocks });
+    const results = [];
+    for (const c of calls) {
+      const tool = tools.find(x => x.name === c.name);
+      let out, isErr = false;
+      try { out = tool ? await tool.execute(c.input || {}) : { error: 'нет такого инструмента' }; } catch (e) { out = { error: String(e.message || e) }; isErr = true; }
+      results.push({ type: 'tool_result', tool_use_id: c.id, content: JSON.stringify(out).slice(0, 12000), is_error: isErr });
+    }
+    msgs.push({ role: 'user', content: results });
+    if (opts.onText) opts.onText({ text: text + '\n\n⚙ запускаю код…', delta: '' });
+  }
+  return { text, truncated: true };
+}, {
+  async json(prompt, opts = {}) {
+    const { text } = await LocalAI(prompt + '\n\nОтветь ТОЛЬКО валидным JSON, без пояснений и без ```.', opts);
+    const s = text.replace(/^```(?:json)?\s*|\s*```\s*$/g, '').trim();
+    try { return JSON.parse(s); } catch (e) { }
+    const a = s.search(/[\[{]/), b = Math.max(s.lastIndexOf('}'), s.lastIndexOf(']'));
+    if (a >= 0 && b > a) return JSON.parse(s.slice(a, b + 1));
+    throw { code: 'bad_json', message: 'ИИ вернул не JSON' };
+  }
+});
+const TUTOR_RULES = `Ты — тьютор по C++ для первокурсника ВШЭ (программа «Дизайн и разработка информационных продуктов»), который готовится к экзамену по «Великому конспекту по C++» М. Горденко. Студент — зумер, ему скучно читать сухой текст.
+Правила:
+- Отвечай по-русски, живо и коротко, можно с лёгким юмором и мемными сравнениями, но технически абсолютно точно (стандарт C++20/23; код студента компилируется его локальным g++/clang на 64-битной системе; если ответ зависит от платформы — sizeof(long), порядок байт, поведение при UB — упомяни это).
+- Терминологию бери из конспекта: операция (operator) vs оператор (statement), lvalue/rvalue, UB, CE, области действия/видимости, классы памяти.
+- Код оформляй в блоках \`\`\`cpp.
+- Если студент решает задачу — не выдавай полное решение, пока он прямо не попросит. Давай наводящие подсказки.
+- Если не уверен — так и скажи, не выдумывай.`;
+const Tutor = {
+  sample: undefined, turns: [], ctxFn: null, busy: false, ctl: null,
+  async get() { if (this.sample === undefined) { try { const i = await Runner.boot(); this.sample = i.ai ? LocalAI : null; } catch (e) { this.sample = null; } } return this.sample; },
+  errText(e) { return ({ no_key: 'ИИ выключен: запусти сервер с переменной ANTHROPIC_API_KEY или OPENAI_API_KEY (см. README).', rate_limit_error: 'Слишком много запросов подряд, подожди минутку.', overloaded_error: 'Модель перегружена, попробуй через минуту.', authentication_error: 'API-ключ не подошёл — проверь ANTHROPIC_API_KEY / OPENAI_API_KEY.', cancelled: 'Остановлено.' })[e?.code] || 'ИИ сейчас недоступен' + (e?.message ? ': ' + e.message : '.'); },
+  setCtx(fn) { this.ctxFn = fn; const c = $('#tctx'); if (c) c.textContent = fn ? 'Контекст: ' + (App.view === 'chapter' ? 'текущая глава' : App.view === 'task' ? 'текущая задача и твой код' : App.view === 'sandbox' ? 'код в песочнице' : App.view === 'exam' ? 'билет (без подсказок)' : 'страница') : 'Контекст: общий вопрос'; },
+  toggle(force) { const d = $('#drawer'); const open = force ?? !d.classList.contains('open'); d.classList.toggle('open', open); if (open) $('#tin').focus(); },
+  open(text) { this.toggle(true); if (text) { $('#tin').value = text; this.send(); } },
+  tools() {
+    return [{
+      name: 'run_cpp', description: 'Скомпилировать (локальный компилятор студента, -O0) и запустить полную программу на C++. Возвращает stdout, stderr, код возврата или ошибки компиляции. Используй, чтобы проверить свои утверждения о выводе программы.',
+      inputSchema: { type: 'object', properties: { code: { type: 'string', description: 'полный исходник с main' }, stdin: { type: 'string' } }, required: ['code'] },
+      execute: async ({ code, stdin }) => { const r = await Runner.run(code, stdin || ''); return r.stage === 'compile' ? { compile_error: r.log.slice(0, 4000) } : { stdout: (r.stdout || '').slice(0, 4000), stderr: (r.stderr || '').slice(0, 2000), exit_code: r.code, timeout: !!r.timeout, crash: r.trap || null }; }
+    }];
+  },
+  async ask(prompt, onText, opts = {}) {
+    const s = await this.get(); if (!s) throw { code: 'no_key' };
+    this.ctl = new AbortController();
+    return s(prompt, { onText, signal: this.ctl.signal, tools: Runner.ok ? this.tools() : undefined, ...opts });
+  },
+  addMsg(role, text) { const m = h('div', { class: 'msg ' + (role === 'user' ? 'u' : 'a') }); if (role === 'user') m.textContent = text; else m.innerHTML = text; $('#msgs').append(m); $('#msgs').scrollTop = 1e9; return m; },
+  async send() {
+    const inp = $('#tin'); const text = inp.value.trim(); if (!text || this.busy) return;
+    inp.value = ''; this.addMsg('user', text); const bubble = this.addMsg('a', '<span class="spin"></span> думаю…');
+    this.turns.push({ role: 'user', content: text }); if (this.turns.length > 16) this.turns = this.turns.slice(-16);
+    if (this.turns[0].role !== 'user') this.turns.shift();
+    const ctx = this.ctxFn ? this.ctxFn() : '';
+    const input = [{ role: 'user', content: TUTOR_RULES + (ctx ? '\n\nКонтекст страницы, которую студент сейчас открыл:\n' + ctx.slice(0, 14000) : '') }, ...this.turns];
+    this.busy = true; $('#tstop').hidden = false;
+    try {
+      const { text: ans } = await this.ask(input, ({ text }) => { bubble.innerHTML = md(text); $('#msgs').scrollTop = 1e9; }, { cache: false });
+      bubble.innerHTML = md(ans); this.turns.push({ role: 'assistant', content: ans });
+    } catch (e) { bubble.innerHTML = md(e.text || '') + `<p class="vsmall">${esc(this.errText(e))}</p>`; this.turns.pop(); }
+    this.busy = false; $('#tstop').hidden = true;
+  },
+  async inline(box, prompt, label) {
+    const out = h('div', { class: 'ai-out' }, h('div', { class: 'who' }, label || 'ИИ-тьютор'), h('div', { html: '<span class="spin"></span> думаю… (первый ответ бывает до минуты)' }));
+    box.append(out); const body = out.lastChild;
+    try { const { text } = await this.ask(prompt, ({ text }) => body.innerHTML = md(text)); body.innerHTML = md(text); }
+    catch (e) { body.innerHTML = md(e.text || '') + `<p class="vsmall">${esc(this.errText(e))}</p>`; }
+    return out;
+  },
+  explainSection(sec, ch) {
+    const old = $('.ai-out', sec); if (old) { old.remove(); return; }
+    const text = sec.innerText.slice(0, 7000); const h2 = $('h2', sec);
+    const holder = h('div'); h2.after(holder);
+    this.inline(holder, TUTOR_RULES + `\n\nОбъясни проще раздел «${h2.textContent.replace('✦ объясни проще', '').trim()}» из главы «${ch.title}». Студенту не зашло. Сделай так: 1) суть в 2–3 предложениях человеческим языком; 2) бытовая аналогия; 3) маленький пример кода с комментариями; 4) одна типичная ловушка на экзамене. Не длиннее ~250 слов.\n\nТекст раздела:\n${text}`, 'Объясняю проще');
+  },
+  hint(t, code, report, box) {
+    this.inline(box, TUTOR_RULES + `\n\nСтудент решает задачу и просит подсказку. НЕ пиши решение и не пиши готовый код функции целиком. Дай одну следующую наводящую подсказку (2–4 предложения), опираясь на его текущий код и результаты тестов. Если в коде конкретная ошибка — укажи, где искать, но не исправляй за него.\n\nЗадача «${t.title}»: ${h('div', { html: t.text + (t.in || '') + (t.out || '') }).textContent}\n\nКод студента:\n${code}\n\nРезультат проверки: ${report || 'ещё не проверял'}`, 'Подсказка');
+  },
+  review(t, code, report, box, scrollTo) {
+    this.inline(box, TUTOR_RULES + `\n\nСделай код-ревью решения как строгий, но добрый семинарист. Структура: ✅ что хорошо; ⚠️ ошибки/UB/краевые случаи (укажи строки); 🧹 стиль (именование, const, ++i, лишние копии, глобальные переменные — как требует конспект); 💡 как сделать лучше (без полного переписывания). Если решение верное — так и скажи. Коротко.\n\nЗадача «${t.title}»: ${h('div', { html: t.text }).textContent}\n\nКод:\n${code}\n\nРезультат тестов: ${report || 'не запускал'}`, 'Ревью кода');
+    scrollTo && box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  },
+  async gradeTheory(th, answer) {
+    if (!answer.trim()) return { score: 0, feedback: 'Ответа нет — 0 баллов.' };
+    const s = await this.get();
+    if (!s) return { score: 0, feedback: 'ИИ недоступен, оцени себя сам по эталону ниже (теория не засчитана).' };
+    try {
+      const r = await s.json(`Ты экзаменатор по C++ (1 курс). Оцени устный ответ студента на вопрос билета по эталону из конспекта. Будь справедлив: суть важнее формулировок, но ошибки в терминах и фактах снижают балл. Верни ТОЛЬКО JSON {"score": целое 0..30, "feedback": "2–5 предложений по-русски: что упущено/неверно, что хорошо"}.\n\nВопрос: ${h('div', { html: th.q }).textContent}\n\nЭталон: ${h('div', { html: th.key }).textContent}\n\nОтвет студента: ${answer.slice(0, 6000)}`, { modelTier: 'default' });
+      return { score: Math.max(0, Math.min(30, Math.round(+r.score || 0))), feedback: String(r.feedback || '') };
+    } catch (e) { return { score: 0, feedback: this.errText(e) + ' Теория не засчитана — сверь с эталоном.' }; }
+  }
+};
+
+/* ================= AI-generated tasks with verified tests ================= */
+const AITask = {
+  list: [],
+  load() { try { this.list = JSON.parse(localStorage.getItem('ai-tasks') || '[]'); } catch (e) { this.list = []; } },
+  save() { try { localStorage.setItem('ai-tasks', JSON.stringify(this.list.slice(-30))); } catch (e) { } },
+  get(id) { return this.list.find(t => t.id === id); },
+  async generate(chId) {
+    const s = await Tutor.get(); if (!s) { toast('ИИ выключен: нужен ANTHROPIC_API_KEY или OPENAI_API_KEY при запуске сервера'); return; }
+    const ch = chId ? Data.chapter(chId) : null;
+    const upto = ch ? Data.manifest.chapters.filter(c => c.n <= ch.n).map(c => c.title).join(', ') : Data.manifest.chapters.map(c => c.title).join(', ');
+    const main = $('#main'); main.innerHTML = '';
+    const col = h('div', { class: 'col' }, h('h1', {}, 'Генерирую задачу…'), h('p', { class: 'vsmall' }, 'ИИ придумывает задачу в стиле LeetCode по ' + (ch ? 'главе «' + ch.title + '»' : 'всему курсу') + ', потом эталонное решение прогоняется настоящим компилятором, и ожидаемые ответы берутся из него. Обычно 30–90 секунд.'));
+    const log = h('pre', { class: 'out' }); col.append(log); main.append(col);
+    try {
+      const spec = await s.json(`Придумай одну НОВУЮ задачу по C++ уровня easy/medium в стиле LeetCode для первокурсника. Тема: ${ch ? '«' + ch.title + '»' : 'любая'}; можно использовать только темы: ${upto}. Не используй STL-контейнеры (vector, map и т.п.) и алгоритмы — только то, что есть в курсе (массивы, указатели, строки, функции, структуры/классы, если они в списке тем). Формат — консольный ввод/вывод (stdin/stdout).
+Верни ТОЛЬКО JSON: {"title": "...", "lvl": "easy"|"medium", "text": "условие в HTML (<p>, <code>)", "in": "формат ввода (HTML)", "out": "формат вывода (HTML)", "starter": "заготовка: полная программа с main и TODO", "sol": "полное правильное решение на C++", "inputs": ["ввод теста 1", ... 6–8 тестов, включая краевые случаи]}`, { modelTier: 'default' });
+      if (!spec || !spec.sol || !Array.isArray(spec.inputs)) throw new Error('ИИ вернул что-то не то');
+      log.textContent = 'Задача придумана. Компилирую эталон…';
+      const comp = await Runner.compile(spec.sol); if (!comp.ok) throw new Error('эталон не скомпилировался:\n' + comp.log);
+      const tests = [];
+      for (const i of spec.inputs.slice(0, 10)) { const r = await Runner.exec(comp, String(i)); if (!r.timeout && !r.trap && r.code === 0) tests.push({ i: String(i), o: normOut(r.stdout) }); }
+      if (tests.length < 3) throw new Error('эталон упал на большинстве тестов, попробуй ещё раз');
+      const t = { id: 'ai' + Date.now().toString(36), ch: chId || Data.manifest.chapters[0].id, title: spec.title, lvl: spec.lvl === 'medium' ? 'medium' : 'easy', src: 'ai', text: spec.text, in: spec.in, out: spec.out, starter: spec.starter || '', sol: spec.sol, tests, show: 2, mode: 'io' };
+      this.list.push(t); this.save(); location.hash = '#task-' + t.id;
+    } catch (e) { log.textContent = 'Не получилось: ' + (e.message || Tutor.errText(e)); col.append(h('button', { type: 'button', class: 'btn', onclick: () => this.generate(chId) }, 'Ещё раз')); }
+  }
+};
+
+/* ================= boot ================= */
+(async function boot() {
+  Store.load(); AITask.load();
+  $('#menu').onclick = () => $('#side').classList.toggle('open');
+  $('#tutor-btn').onclick = () => Tutor.toggle();
+  $('#tclose').onclick = () => Tutor.toggle(false);
+  $('#tstop').onclick = () => Tutor.ctl && Tutor.ctl.abort();
+  $('#tclear').onclick = () => { Tutor.turns = []; $('#msgs').innerHTML = ''; Tutor.addMsg('a', '<p>Начали с чистого листа. Спрашивай.</p>'); };
+  $('#tform').onsubmit = e => { e.preventDefault(); Tutor.send(); };
+  $('#tin').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); Tutor.send(); } });
+  for (const b of $$('#chips button')) b.onclick = () => { $('#tin').value = b.textContent + (App.view === 'chapter' ? ' (по текущей главе)' : ''); Tutor.send(); };
+  try { await Data.init(); }
+  catch (e) { $('#main').innerHTML = ''; $('#main').append(h('div', { class: 'col c c-ub' }, 'Не получилось загрузить данные: ' + e.message)); return; }
+  App.buildSide(); App.refreshProgress();
+  window.addEventListener('hashchange', () => App.route());
+  App.route();
+  Runner.boot().then(i => { if (!i.ok) toast('⚠ ' + i.error); }).catch(e => toast(e.message));
+  Tutor.get().then(s => { if (!s) { $('#tutor-btn').title = 'ИИ-тьютор выключен: запусти сервер с ANTHROPIC_API_KEY или OPENAI_API_KEY'; } });
+  window.addEventListener('pagehide', () => Store.flush());
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') Store.flush(); });
+})();
+
+</script>
+</body>
+</html>

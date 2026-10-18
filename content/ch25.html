@@ -1,0 +1,178 @@
+<section>
+<h2><span class="sn">25.1</span> Идиома RAII</h2>
+<p>Конструкторы и деструкторы позволяют реализовать важнейшую идиому C++ — <b>RAII</b> (Resource Acquisition Is Initialization, «захват ресурса — это инициализация»).</p>
+<aside class="c c-def"><p>Идея: выделение ресурса происходит в <b>конструкторе</b>, освобождение — в <b>деструкторе</b>. Время жизни ресурса привязывается к времени жизни объекта, и всё происходит автоматически.</p></aside>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+// auto ptr = new int(10); // небезопасно! можно забыть delete
+
+// RAII-обёртка
+class IntPtr {
+    int* ptr;
+public:
+    explicit IntPtr(int value) : ptr(new int(value)) { std::cout << "acquire\n"; }
+    ~IntPtr() { delete ptr; std::cout << "release\n"; }
+    IntPtr(const IntPtr&) = delete;            // запрет копирования (25.4)
+    IntPtr& operator=(const IntPtr&) = delete;
+    int Get() const { return *ptr; }
+};
+
+int find(int x) {
+    IntPtr p(x);
+    if (x < 0) return -1;   // ранний выход — память всё равно освободится
+    return p.Get() * 2;
+}
+
+int main() {
+    std::cout << find(5) << '\n';
+    std::cout << find(-1) << '\n';
+}
+</script>
+<p>Ты уже пользовался RAII: <code>std::unique_ptr</code> (глава 15) и файловые потоки (глава 18) закрывают ресурс в деструкторе. Сколько бы <code>return</code> ни было в функции, деструктор отработает при любом выходе.</p>
+<aside class="c c-prod"><p><code>std::lock_guard</code> (захватывает мьютекс в конструкторе, отпускает в деструкторе), умные указатели, потоки файлов, транзакции в обёртках над БД — всё это RAII. В большом C++-коде ручных <code>delete</code>, <code>close()</code> и <code>unlock()</code> почти нет: за них отвечают деструкторы.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">25.2</span> Порядок вызова конструкторов и деструкторов</h2>
+<aside class="c c-imp"><p>Стековые объекты <b>создаются в порядке объявления</b>, а <b>уничтожаются в обратном</b>.</p></aside>
+<div class="trace" data-title="Порядок жизни объектов">
+<script type="text/x-cpp">
+struct A {
+    A() { std::cout << "A() "; }
+    ~A() { std::cout << "~A() "; }
+};
+struct B {
+    B() { std::cout << "B() "; }
+    ~B() { std::cout << "~B() "; }
+};
+int main() {
+    A a;
+    B b;
+    return 0;
+}
+</script>
+<script type="application/json">{"steps":[
+{"l":10,"n":"Создаётся <code>a</code>: вызывается <code>A()</code>.","st":[{"f":"main()","v":[["a","A","живой"]]}],"out":"A() "},
+{"l":11,"n":"Создаётся <code>b</code>: <code>B()</code>. На стеке — сначала <code>a</code>, потом <code>b</code>.","st":[{"f":"main()","v":[["a","A","живой"],["b","B","живой"]]}],"out":"A() B() "},
+{"l":12,"n":"Выход из <code>main</code>. Уничтожение идёт в <b>обратном</b> порядке: сначала последний созданный <code>b</code>…","st":[{"f":"main()","v":[["a","A","живой"],["b","B","~B()",{"dead":true}]]}],"out":"A() B() ~B() "},
+{"l":12,"n":"…потом <code>a</code>. Как в стопке тарелок: последнюю положенную снимают первой. Это важно: <code>b</code> может зависеть от <code>a</code> и должен умереть раньше.","st":[],"out":"A() B() ~B() ~A() "}
+]}</script>
+</div>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+struct A {
+    A() { std::cout << "A() "; }
+    ~A() { std::cout << "~A() "; }
+};
+struct B {
+    B() { std::cout << "B() "; }
+    ~B() { std::cout << "~B() "; }
+};
+int main() {
+    A a;
+    B b;
+    return 0;
+} // вывод: A() B() ~B() ~A()
+</script>
+<aside class="c c-tip" data-l="А поля класса?"><p>То же правило: поля конструируются в порядке объявления (до входа в тело конструктора), а уничтожаются в обратном порядке после выхода из тела деструктора. Сначала тело <code>~C()</code>, потом деструкторы полей снизу вверх.</p></aside>
+<div class="qz" data-type="out" data-ans="1 2 3 ~3 ~2 ~1">
+<div class="q">Что выведет программа? (Пробелы как в коде.)</div>
+<script type="text/x-cpp">
+#include <iostream>
+struct N {
+    int k;
+    N(int v) : k(v) { std::cout << k << ' '; }
+    ~N() { std::cout << '~' << k << ' '; }
+};
+struct Box {
+    N first{1};
+    N second{2};
+};
+int main() {
+    Box b;
+    N third(3);
+}
+</script>
+<div class="why">Поля <code>Box</code> создаются по порядку (1, 2), потом <code>third</code> (3). Уничтожение обратное: сначала <code>third</code>, потом <code>b</code>, а внутри <code>b</code> поля в обратном порядке: 2, 1.</div>
+</div>
+</section>
+
+<section>
+<h2><span class="sn">25.3</span> Правило трёх</h2>
+<aside class="c c-def"><p>«Если класс требует пользовательской реализации <b>деструктора</b>, либо <b>конструктора копирования</b>, либо <b>оператора присваивания</b>, то, скорее всего, ему нужны все три.»</p></aside>
+<p>Это не правило языка (нарушение не вызывает ошибку компиляции), а правило приличия. Но следовать ему нужно для корректной работы классов. Логика: если пришлось писать деструктор, значит, класс владеет ресурсом (памятью, файлом). Тогда сгенерированное копирование скопирует <i>указатель</i> на ресурс, и два объекта будут освобождать одно и то же — вспомни трейс про double free в главе 23.</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+#include <cstring>
+class Buffer {
+    char* data_;
+    size_t size_;
+public:
+    explicit Buffer(const char* s) : size_(std::strlen(s)) {
+        data_ = new char[size_ + 1];
+        std::memcpy(data_, s, size_ + 1);
+    }
+    // 1. деструктор
+    ~Buffer() { delete[] data_; }
+    // 2. конструктор копирования — глубокая копия
+    Buffer(const Buffer& o) : size_(o.size_) {
+        data_ = new char[size_ + 1];
+        std::memcpy(data_, o.data_, size_ + 1);
+    }
+    // 3. оператор присваивания — с защитой от самоприсваивания (глава 26)
+    Buffer& operator=(const Buffer& o) {
+        if (this != &o) {
+            delete[] data_;
+            size_ = o.size_;
+            data_ = new char[size_ + 1];
+            std::memcpy(data_, o.data_, size_ + 1);
+        }
+        return *this;
+    }
+    const char* c_str() const { return data_; }
+};
+int main() {
+    Buffer a("hello");
+    Buffer b = a;     // копирование
+    Buffer c("x");
+    c = a;            // присваивание
+    a = a;            // самоприсваивание не ломает
+    std::cout << a.c_str() << ' ' << b.c_str() << ' ' << c.c_str() << '\n';
+} // три независимых буфера — три корректных delete[]
+</script>
+<p>Дальше в курсе это правило эволюционирует в «<b>правило пяти</b>» (добавятся конструктор и оператор перемещения) и «<b>правило нуля</b>» (не владей ресурсами вручную — используй <code>std::string</code>, <code>std::vector</code>, <code>std::unique_ptr</code>, и писать ничего из трёх не придётся).</p>
+</section>
+
+<section>
+<h2><span class="sn">25.4</span> Конструкция = delete</h2>
+<p>С C++11 функции можно объявлять <b>удалёнными</b>: их нельзя вызвать и нельзя взять на них указатель.</p>
+<script type="text/x-cpp" data-run data-ce>
+void f(int) {}
+void f(double) = delete;
+
+template <class T>
+void g(T) {}
+template <>
+void g(int) = delete;
+
+int main() {
+    f(1);   // OK
+    f(1.0); // Ошибка компиляции
+    g(1);   // Ошибка компиляции
+    g(1.0); // OK
+}
+</script>
+<p>Обычно так запрещают генерацию некоторых методов, например копирование:</p>
+<script type="text/x-cpp">
+struct C {
+    C(const C&) = delete; // запрещаем копирование
+    // ...
+};
+</script>
+<p>Альтернатива из старых времён — объявить метод приватным без определения. Но это плохой стиль: ошибка всплывёт только на линковке или неожиданно для друзей класса.</p>
+<div class="qz" data-type="single" data-ans="3">
+<div class="q">Класс открывает файл в конструкторе и закрывает в деструкторе. Копировать такие объекты бессмысленно. Как правильнее всего это выразить?</div>
+<ol><li>Ничего не делать</li><li>Написать пустой конструктор копирования</li><li>Сделать конструктор копирования <code>private</code> без определения</li><li><code>File(const File&amp;) = delete;</code> и <code>File&amp; operator=(const File&amp;) = delete;</code></li></ol>
+<div class="why">Явный <code>= delete</code> даёт понятную ошибку компиляции прямо в месте попытки копирования. Вариант C — старый трюк с поздней и малопонятной ошибкой. Вариант B опасен: «копия» будет с неинициализированными полями.</div>
+</div>
+</section>

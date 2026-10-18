@@ -1,0 +1,387 @@
+<p>В C++ можно определить поведение операций для классов, структур и перечислений. Это <b>перегрузка операций</b>. Наравне с перегрузкой функций и шаблонами — проявление <b>статического полиморфизма</b>.</p>
+<aside class="c c-tip" data-l="Главный секрет главы"><p><code>a + b</code> для пользовательского типа — это просто вызов функции с необычным именем: <code>operator+(a, b)</code> или <code>a.operator+(b)</code>. Всё остальное — следствия.</p></aside>
+
+<section>
+<h2><span class="sn">26.1</span> Синтаксис</h2>
+<p>Как у функции: тип результата, имя <code>operator&lt;оп&gt;</code>, аргументы, тело.</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+struct Complex {
+    double re, im;
+    Complex(double r, double i) : re(r), im(i) {}
+};
+
+Complex operator+(const Complex& x, const Complex& y) {
+    return Complex(x.re + y.re, x.im + y.im);
+}
+
+int main() {
+    Complex c = Complex(1, 2) + Complex(3, 4);    // OK: 4 + 6i
+    Complex d = operator+(Complex(1, 2), Complex(3, 4)); // то же самое явно
+    std::cout << c.re << " + " << c.im << "i; " << d.re << " + " << d.im << "i\n";
+}
+</script>
+<p>Альтернатива — операция как <b>метод класса</b>. Тогда текущий объект (<code>*this</code>) автоматически левый операнд, а в аргументы передаётся только правый:</p>
+<script type="text/x-cpp">
+Complex Complex::operator+(const Complex& y) const {
+    return Complex(re + y.re, im + y.im);
+}
+
+Complex(1, 2) + Complex(3, 4); // OK: 4 + 6i
+// эквивалентно: Complex(1, 2).operator+(Complex(3, 4))
+</script>
+</section>
+
+<section>
+<h2><span class="sn">26.2</span> Перегрузка унарных операций</h2>
+<p>Унарный <code>+</code>, унарный <code>-</code>, унарная <code>*</code> и т.д. принимают один аргумент — значит, и перегрузка тоже:</p>
+<script type="text/x-cpp">
+// внешняя функция
+Complex operator-(const Complex& x) {
+    return {-x.re, -x.im};
+}
+
+// метод класса (аргументов нет: единственный операнд — *this)
+Complex Complex::operator-() const {
+    return {-re, -im};
+}
+</script>
+</section>
+
+<section>
+<h2><span class="sn">26.3</span> Правила и особенности</h2>
+<ol>
+<li><b>Нельзя</b> переопределять операции для примитивных типов: хотя бы один аргумент должен быть пользовательского типа.
+<script type="text/x-cpp">
+const char* operator*(const char* str, int n); // Ошибка
+Complex operator+(const Complex& x, int y);    // OK
+</script></li>
+<li><b>Нельзя</b> вводить новые операции (например, <code>**</code> для степени).
+<script type="text/x-cpp">
+Complex operator**(const Complex& x, int n); // Ошибка
+</script></li>
+<li><b>Нельзя</b> менять арность и приоритет операций.</li>
+<li><b>Нельзя</b> переопределять <code>::</code>, <code>.</code>, <code>?:</code>, <code>.*</code>.</li>
+<li><code>=</code>, <code>()</code>, <code>[]</code>, <code>-&gt;</code> перегружаются <b>только как методы</b> класса.</li>
+<li><code>&amp;&amp;</code> и <code>||</code> при перегрузке <b>теряют «короткое замыкание»</b> (до C++17 теряли и строгий порядок вычисления, как и запятая).</li>
+</ol>
+<aside class="c c-imp" data-l="Метод или внешняя функция?"><p>Если операция — метод, левый операнд <b>всегда</b> объект этого класса, и неявные преобразования для левого операнда невозможны. Если они нужны — делай внешнюю функцию.</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+struct Complex {
+    double re, im;
+    Complex(double r, double i = 0) : re(r), im(i) {} // конструктор преобразования из double
+};
+Complex operator+(const Complex& a, const Complex& b) { return {a.re + b.re, a.im + b.im}; }
+
+int main() {
+    Complex z(1, 2);
+    Complex p = z + 5;  // OK: 5 -> Complex(5)
+    Complex q = 5 + z;  // OK только потому, что operator+ — внешняя функция!
+    std::cout << p.re << ' ' << q.re << '\n'; // 6 6
+}
+</script>
+<p>Если бы <code>operator+</code> был методом, <code>5 + z</code> не скомпилировался бы: у числа 5 нет методов.</p></aside>
+<div class="qz" data-type="multi" data-ans="1,3">
+<div class="q">Какие перегрузки <b>запрещены</b>?</div>
+<ol><li><code>Vec operator*(const Vec&amp;, double);</code></li><li><code>int operator+(int, int);</code></li><li><code>bool operator==(const Vec&amp;, const Vec&amp;);</code></li><li><code>Vec operator^^(const Vec&amp;, const Vec&amp;);</code></li><li><code>Vec&amp; Vec::operator=(const Vec&amp;);</code></li></ol>
+<div class="why">B — оба операнда примитивные. D — операции <code>^^</code> в языке нет. Остальное законно.</div>
+</div>
+</section>
+
+<section>
+<h2><span class="sn">26.4</span> Префиксный инкремент и декремент</h2>
+<p>Для базовых типов <code>++x</code> и <code>--x</code> меняют значение на ±1 и <b>возвращают ссылку</b> на ту же переменную. Стоит повторять это поведение (компилятор не проверит).</p>
+<script type="text/x-cpp">
+// вариант 1: внешняя функция
+Complex& operator++(Complex& value) {
+    ++value.re;
+    return value;
+}
+
+// вариант 2: метод класса
+Complex& Complex::operator++() {
+    ++re;
+    return *this;
+}
+</script>
+</section>
+
+<section>
+<h2><span class="sn">26.5</span> Постфиксный инкремент и декремент</h2>
+<p><code>x++</code> и <code>x--</code> возвращают <b>копию старого значения</b>. Чтобы отличить постфиксную версию от префиксной, (внезапно!) добавляют фиктивный аргумент типа <code>int</code>. Он не используется, только подсказывает компилятору.</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+struct Complex {
+    double re = 0, im = 0;
+    Complex& operator++() { ++re; return *this; }  // префиксный
+    Complex operator++(int) {                      // постфиксный
+        auto old_value = *this;
+        ++re;
+        return old_value;
+    }
+};
+int main() {
+    Complex c;
+    Complex a = c++; // a.re = 0, c.re = 1
+    Complex b = ++c; // b.re = 2, c.re = 2
+    std::cout << a.re << ' ' << b.re << ' ' << c.re << '\n'; // 0 2 2
+}
+</script>
+<aside class="c c-tip"><p>Вот и объяснение совета из главы 9 «пиши <code>++i</code>»: постфиксная версия обязана сделать копию старого значения. Для <code>int</code> компилятор это соптимизирует, а для тяжёлого класса копия реальная.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">26.6</span> Операция индексирования []</h2>
+<p>Перегружается <b>только как метод</b> и только с одним аргументом:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+class IntArray {
+    int buffer_[5]{10, 20, 30, 40, 50};
+public:
+    int operator[](size_t i) const { return buffer_[i]; } // только для чтения
+    int& operator[](size_t i) { return buffer_[i]; }      // для чтения и записи
+    // int& operator[](size_t i, size_t j); // так нельзя (до C++23 — два аргумента запрещены)
+};
+int main() {
+    IntArray a;
+    a[1] = 99;              // неконстантная версия, int&
+    const IntArray& ca = a;
+    std::cout << ca[1] << '\n'; // константная версия: 99
+    // ca[1] = 5;           // CE: константная версия возвращает копию
+}
+</script>
+<p>Для многомерного доступа обычно возвращают из <code>operator[]</code> прокси-объект или используют <code>operator()</code> с несколькими аргументами. (С C++23 многоаргументный <code>operator[]</code> разрешили, но в курсе опираемся на правило из конспекта.)</p>
+</section>
+
+<section>
+<h2><span class="sn">26.7</span> Круглые скобки ()</h2>
+<p>Только метод, аргументов — сколько угодно (включая ноль). Классы с <code>operator()</code> называются <b>функторами</b> (function objects):</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+struct Printer {
+    void operator()(int i, const char* str, char c) const {
+        std::cout << i << ' ' << str << ' ' << c << '\n';
+    }
+};
+
+struct Counter {
+    int calls = 0;
+    int operator()() { return ++calls; } // функтор с состоянием
+};
+
+int main() {
+    Printer print;
+    print(1, "Hello", '+'); // 1 Hello +
+    Counter next;
+    next(); next();
+    std::cout << next() << '\n'; // 3
+}
+</script>
+<aside class="c c-prod"><p>Функторы — предки лямбд. <code>std::sort(a, a + n, Compare{})</code> принимает объект с <code>operator()</code> как правило сравнения. Лямбда <code>[](int a, int b) { return a &gt; b; }</code> — это компилятор, который сам написал тебе такой класс.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">26.8</span> Операция присваивания</h2>
+<ul>
+<li>Классическое <code>=</code> присваивает значение правого аргумента левому и возвращает ссылку на левый операнд (<code>*this</code>).</li>
+<li>Реализация не обязана следовать соглашению, но мир станет лучше, если следовать.</li>
+<li>Одна из четырёх операций, которые бывают <b>только методами</b>.</li>
+<li>Часть «правила трёх».</li>
+</ul>
+<script type="text/x-cpp">
+Complex& Complex::operator=(const Complex& other) {
+    re = other.re;
+    im = other.im;
+    return *this;
+}
+</script>
+<p>Если не реализовать свой оператор, компилятор создаст его сам: присвоит каждое поле и вернёт ссылку. Код выше избыточен — без него было бы то же самое. Явно попросить сгенерированный: <code>Complex&amp; operator=(const Complex&amp; other) = default;</code></p>
+<h3>Проблема самоприсваивания</h3>
+<script type="text/x-cpp">
+Stack& Stack::operator=(const Stack& other) {
+    delete[] buffer_;
+    buffer_ = new int[kCapacity];
+    size_ = other.size_;
+    for (size_t i = 0; i < size_; ++i) {
+        buffer_[i] = other.buffer_[i];
+    }
+    return *this;
+}
+
+Stack a;
+a = a; // Проблема!
+</script>
+<p>Сначала удаляется <code>a.buffer_</code>, а потом копируются элементы из <code>other.buffer_</code> — который уже удалён, ведь <code>other</code> — ссылка на тот же <code>a</code>. Чтение освобождённой памяти — UB. Лечится проверкой в начале:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+class Stack {
+    inline static const size_t kCapacity = 100;
+    int* buffer_;
+    size_t size_ = 0;
+public:
+    Stack() : buffer_(new int[kCapacity]) {}
+    ~Stack() { delete[] buffer_; }
+    Stack(const Stack& o) : buffer_(new int[kCapacity]), size_(o.size_) {
+        for (size_t i = 0; i < size_; ++i) buffer_[i] = o.buffer_[i];
+    }
+    Stack& operator=(const Stack& other) {
+        if (this != &other) { // защита от самоприсваивания
+            delete[] buffer_;
+            buffer_ = new int[kCapacity];
+            size_ = other.size_;
+            for (size_t i = 0; i < size_; ++i) {
+                buffer_[i] = other.buffer_[i];
+            }
+        }
+        return *this;
+    }
+    void Push(int v) { buffer_[size_++] = v; }
+    int Top() const { return buffer_[size_ - 1]; }
+};
+int main() {
+    Stack a;
+    a.Push(42);
+    a = a;           // безопасно
+    Stack b;
+    b = a;           // глубокая копия
+    std::cout << a.Top() << ' ' << b.Top() << '\n';
+}
+</script>
+<p>Более идиоматичный способ — идиома <b>copy-and-swap</b>, её рассмотрят позже.</p>
+<h3>Составные операции присваивания</h3>
+<p><code>+=</code>, <code>-=</code>, <code>*=</code> и т.д. меняют левый операнд и обычно возвращают ссылку на него. В отличие от <code>=</code>, ограничений нет: это обычные бинарные операции. Но, как правило, их делают методами.</p>
+<script type="text/x-cpp">
+// вариант 1: метод класса
+Complex& Complex::operator+=(const Complex& other) {
+    re += other.re;
+    im += other.im;
+    return *this;
+}
+
+// вариант 2: внешняя функция (в отличие от operator=, так можно)
+Complex& operator+=(Complex& lhs, const Complex& rhs) {
+    lhs.re += rhs.re;
+    lhs.im += rhs.im;
+    return lhs;
+}
+</script>
+<aside class="c c-tip"><p>Частый приём: реализовать <code>+=</code> методом, а <code>+</code> выразить через него внешней функцией: <code>Complex operator+(Complex a, const Complex&amp; b) { a += b; return a; }</code>. Логика сложения пишется один раз.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">26.9</span> Сдвиги для ввода/вывода</h2>
+<p>Так сложилось, что <code>&gt;&gt;</code> и <code>&lt;&lt;</code> переопределяют не по прямому назначению, а для ввода из потока и вывода в поток:</p>
+<ul>
+<li><code>std::cin</code> — объект класса <code>std::istream</code> (чтение из стандартного ввода);</li>
+<li><code>std::cout</code> — объект класса <code>std::ostream</code> (запись в стандартный вывод);</li>
+<li>есть и другие потоки: <code>std::ifstream</code>/<code>std::ofstream</code> (файлы), <code>std::istringstream</code>/<code>std::ostringstream</code> (строки).</li>
+</ul>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+#include <sstream>
+int main() {
+    int x, y, z;
+    std::istringstream sin("1 2 3");
+    sin >> x >> y >> z; // x = 1, y = 2, z = 3
+
+    std::ostringstream sout;
+    sout << x << ", " << y << ", " << z;
+    std::cout << sout.str() << '\n'; // "1, 2, 3"
+}
+</script>
+<p>Где-то в <code>&lt;iostream&gt;</code> перегружена <code>&gt;&gt;</code> с левым операндом <code>std::istream</code> и правым <code>int</code> (и другими базовыми типами). Чтобы работала цепочка <code>std::cin &gt;&gt; x &gt;&gt; y;</code> (то есть <code>(std::cin &gt;&gt; x) &gt;&gt; y</code>), операция должна <b>возвращать поток</b>:</p>
+<script type="text/x-cpp">
+std::istream& operator>>(std::istream& is, int& value);
+std::ostream& operator<<(std::ostream& os, int value);
+</script>
+<h3>friend</h3>
+<p>Операциям ввода/вывода обычно нужен доступ к приватным полям, поэтому их делают <b>друзьями</b> класса.</p>
+<aside class="c c-def"><p><b>Друзья класса</b> — внешние сущности (функции, другие классы или методы других классов), которые имеют доступ к приватной и защищённой части класса.</p></aside>
+<script type="text/x-cpp">
+class Stack {
+    // ...
+    friend void Print(const Stack& stack); // функция-друг
+};
+
+void Print(const Stack& stack) {
+    for (size_t i = 0; i < stack.size_; ++i) {   // доступ к private
+        std::cout << stack.buffer_[i] << ' ';
+    }
+}
+</script>
+<p>Друга можно сразу объявить и определить внутри класса. Другом может быть и метод другого класса, и класс целиком:</p>
+<script type="text/x-cpp">
+class B; // предварительное объявление
+
+class A {
+    void f() {
+        B b;
+        b.g(); // OK, если g() публична
+        b.j(); // OK, если j() публична или B объявил A::f другом
+    }
+    void h() {
+        B b;
+        b.g(); // OK, если g() публична
+        b.j(); // Ошибка, если B не объявил A (или A::h) другом
+    }
+    friend class B; // весь класс B — друг A
+};
+
+class B {
+    void g() {
+        A a;
+        a.f(); // OK: B — друг A
+        a.h(); // OK: B — друг A
+    }
+    void j() {
+        A a;
+        a.f(); // OK
+        a.h(); // OK
+    }
+    friend void A::f(); // только метод A::f — друг B
+};
+</script>
+<aside class="c c-imp"><p>Дружба <b>не взаимна</b> и <b>не транзитивна</b>: если A объявил B другом, это не значит, что A — друг B, и друзья B не становятся друзьями A. Дружбу «даёт» тот, чьи приватные части открываются.</p></aside>
+<h3>Ввод/вывод для своего типа</h3>
+<p>Итоговый шаблон, который пишется почти всегда так:</p>
+<script type="text/x-cpp" data-run data-stdin="3.5 -2">
+#include <iostream>
+class Complex {
+    double re_;
+    double im_;
+
+public:
+    Complex(double re = 0, double im = 0) : re_(re), im_(im) {}
+    Complex& operator+=(const Complex& o) { re_ += o.re_; im_ += o.im_; return *this; }
+
+    friend std::istream& operator>>(std::istream& is, Complex& complex);
+    friend std::ostream& operator<<(std::ostream& os, const Complex& complex);
+};
+
+std::istream& operator>>(std::istream& is, Complex& complex) {
+    is >> complex.re_ >> complex.im_;
+    return is;
+}
+
+std::ostream& operator<<(std::ostream& os, const Complex& complex) {
+    os << complex.re_ << " + " << complex.im_ << "i";
+    return os;
+}
+
+Complex operator+(Complex a, const Complex& b) { a += b; return a; }
+
+int main() {
+    Complex z;
+    std::cin >> z;
+    std::cout << z << '\n';
+    std::cout << z + Complex(1, 1) << '\n';
+}
+</script>
+<div class="qz" data-type="single" data-ans="2">
+<div class="q">Почему <code>operator&lt;&lt;</code> для своего класса нельзя сделать методом этого класса (чтобы писать <code>std::cout &lt;&lt; z</code>)?</div>
+<ol><li>Потому что <code>&lt;&lt;</code> можно перегружать только для чисел</li><li>Потому что он должен быть <code>const</code></li><li>Потому что у метода левый операнд — объект класса, а здесь слева стоит <code>std::ostream</code></li><li>Можно, просто так не принято</li></ol>
+<div class="why">Метод класса <code>Complex</code> означал бы запись <code>z &lt;&lt; std::cout</code>. Слева в <code>std::cout &lt;&lt; z</code> стоит поток, а дописать метод в чужой класс <code>std::ostream</code> мы не можем. Поэтому — внешняя функция, а для доступа к приватным полям — <code>friend</code>.</div>
+</div>
+<aside class="c c-meme"><p>Операция сдвига, которая на самом деле печатает текст, — ровно та ситуация, про которую говорят: «перегружай операции так, чтобы они делали очевидное». Комитет стандартизации нарушил это правило в первой же библиотеке, и теперь мы живём с <code>std::cout &lt;&lt; (1 &lt;&lt; 3)</code>, где скобки обязательны.</p></aside>
+</section>

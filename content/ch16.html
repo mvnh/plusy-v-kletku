@@ -1,0 +1,249 @@
+<section>
+<h2><span class="sn">16.0</span> Что такое массив</h2>
+<aside class="c c-def"><p><b>Массив</b> — последовательность элементов одного типа, расположенных <b>непрерывно</b> в памяти, с доступом по индексу через общий идентификатор.</p></aside>
+<aside class="c c-def"><p><b>Статический массив</b> — упорядоченный набор элементов одного типа в непрерывной области памяти, размер которого известен на этапе компиляции и не может меняться во время выполнения. Хранится на стеке (если объявлен локально) или в сегменте данных (если глобально).</p></aside>
+<script type="text/x-cpp">
+int array[10];
+</script>
+<aside class="c c-imp"><p>Выражение в квадратных скобках должно быть <b>положительной константой времени компиляции</b>!</p>
+<script type="text/x-cpp">
+int n;
+std::cin >> n;
+int array[n]; // по стандарту нельзя, некоторые компиляторы допускают (VLA — расширение)
+</script></aside>
+<ul>
+<li>Массив <code>int array[10]</code> хранит 10 элементов типа <code>int</code>.</li>
+<li>Доступ — через операцию индексации: <code>array[0]</code>, <code>array[2]</code>, <code>array[9]</code>. Индексация с <b>нуля</b>.</li>
+<li>Гарантируется, что элементы идут в памяти подряд, без разрывов: <code>&amp;a[i] - &amp;a[j] == i - j</code>.</li>
+</ul>
+<aside class="c c-tip" data-l="Упражнение 16.1: зачем элементы подряд?"><p>Чтобы адрес любого элемента вычислялся одной формулой за O(1): <code>адрес(a[i]) = адрес(a[0]) + i · sizeof(T)</code>. Именно поэтому индексация мгновенная, и поэтому работает арифметика указателей. Бонусом непрерывный кусок памяти отлично ложится в кэш процессора.</p></aside>
+<p><b>Пример 1.195.</b> Вводится 100 чисел (здесь — 8, для удобства), найти максимум:</p>
+<script type="text/x-cpp" data-run data-stdin="5 -3 17 8 17 0 4 2">
+#include <iostream>
+int main() {
+    const int N = 8;
+    int array[N];
+    for (int i = 0; i < N; ++i) {
+        std::cin >> array[i];
+    }
+
+    int max_value = array[0];
+    for (int i = 1; i < N; ++i) {
+        if (array[i] > max_value) {
+            max_value = array[i];
+        }
+    }
+    std::cout << max_value << '\n';
+}
+</script>
+</section>
+
+<section>
+<h2><span class="sn">16.1</span> Операции с массивами</h2>
+<script type="text/x-cpp" data-run="wrap">
+int array[10];
+std::cout << sizeof(array) << '\n';               // 40: общий размер в байтах
+std::cout << sizeof(array) / sizeof(int) << '\n'; // 10: количество элементов
+std::cout << &array << '\n';                      // адрес всего массива (тип int(*)[10])
+</script>
+<aside class="c c-imp"><p><code>sizeof(array)</code> возвращает размер всех элементов <b>только у статического массива</b>. У динамического получится размер указателя на первый элемент.</p></aside>
+<p>Инициализация:</p>
+<script type="text/x-cpp">
+int a[10];             // неинициализированный (мусор, если локальный)
+int b[20]{};           // заполнен нулями
+int c[5]{1, 2, 3};     // 1 2 3 0 0 (остальные — нули)
+int d[]{1, 2, 3};      // 1 2 3 (размер 3 определяется автоматически)
+int e[5] = c;          // CE: копирование массивов запрещено
+</script>
+<div class="qz" data-type="out" data-ans="7 0 0 3">
+<div class="q">Что выведет программа?</div>
+<script type="text/x-cpp">
+#include <iostream>
+int main() {
+    int a[4]{7};
+    int b[]{1, 2, 3};
+    std::cout << a[0] << ' ' << a[1] << ' ' << a[3] << ' '
+              << sizeof(b) / sizeof(b[0]) << '\n';
+}
+</script>
+<div class="why"><code>{7}</code> задаёт только первый элемент, остальные — нули. У <code>b</code> размер выведен из инициализатора: 3.</div>
+</div>
+</section>
+
+<section>
+<h2><span class="sn">16.2</span> Связь массивов и указателей</h2>
+<p>Имя массива — «голова» массива, адрес начала. Посмотри по шагам:</p>
+<div class="trace" data-title="Массив и указатель на его элементы">
+<script type="text/x-cpp">
+int a[5]{10, 11, 12, 13, 14};
+int* p = a;
+std::cout << *p << '\n';
+p += 2;
+std::cout << *p << ' ' << p[1] << '\n';
+p[2] = 99;
+</script>
+<script type="application/json">{"steps":[
+{"l":1,"n":"Пять <code>int</code> подряд, по 4 байта каждый. Начало — 0x1234.","st":[{"f":"main()","v":[["a","int[5]",["10","11","12","13","14"],{"a":"0x1234"}]]}]},
+{"l":2,"n":"<code>int* p = a;</code> — массив «распался» (decay) в указатель на первый элемент.","st":[{"f":"main()","v":[["a","int[5]",["10","11","12","13","14"],{"a":"0x1234"}],["p","int*","0x1234",{"p":"a.0"}]]}]},
+{"l":3,"n":"<code>*p</code> → <code>a[0]</code>.","st":[{"f":"main()","v":[["a","int[5]",["10","11","12","13","14"],{"a":"0x1234"}],["p","int*","0x1234",{"p":"a.0"}]]}],"out":"10\n"},
+{"l":4,"n":"<code>p += 2</code> сдвигает на 2 <b>элемента</b> = 8 байт: 0x1234 + 8 = 0x123C.","st":[{"f":"main()","v":[["a","int[5]",["10","11","12","13","14"],{"a":"0x1234"}],["p","int*","0x123C",{"p":"a.2"}]]}],"out":"10\n"},
+{"l":5,"n":"<code>p[1]</code> — это <code>*(p + 1)</code>, то есть <code>a[3]</code>. Индексация работает и у указателей!","st":[{"f":"main()","v":[["a","int[5]",["10","11","12","13","14"],{"a":"0x1234"}],["p","int*","0x123C",{"p":"a.2"}]]}],"out":"10\n12 13\n"},
+{"l":6,"n":"<code>p[2] = 99</code> записывает в <code>a[4]</code>.","st":[{"f":"main()","v":[["a","int[5]",["10","11","12","13","99"],{"a":"0x1234"}],["p","int*","0x123C",{"p":"a.2"}]]}],"out":"10\n12 13\n"}
+]}</script>
+</div>
+<aside class="c c-imp" data-l="Array decay"><p>В большинстве контекстов массив автоматически <b>преобразуется (decays)</b> в указатель на первый элемент:</p>
+<ul><li>при передаче в функцию: <code>void f(int arr[])</code> эквивалентно <code>void f(int* arr)</code>;</li><li>в арифметике указателей;</li><li>при сравнении.</li></ul>
+<p>Исключения (decay не происходит): <code>sizeof</code>, операция <code>&amp;</code>, инициализация ссылки на массив.</p></aside>
+<script type="text/x-cpp" data-run="wrap">
+int array[10]{0, 10, 20, 30, 40, 50, 60, 70, 80, 90};
+std::cout << array << '\n';     // адрес нулевого элемента
+std::cout << array + 5 << '\n'; // адрес array[5]
+
+int* p = array;
+std::cout << p[2] << '\n'; // 20 — элемент с индексом 2
+p += 5;
+std::cout << p[2] << '\n'; // 70 — элемент с индексом 7
+</script>
+<p>Поскольку <code>p[2]</code> — это ровно <code>*(p + 2)</code>, а сложение коммутативно, работает даже <code>2[p]</code>:</p>
+<script type="text/x-cpp" data-run="wrap">
+int a[]{1, 2, 3};
+std::cout << a[2] << ' ' << *(a + 2) << ' ' << 2[a] << '\n'; // 3 3 3
+</script>
+<aside class="c c-meme"><p><code>2[a]</code> — законный C++ и идеальный способ потерять друзей на код-ревью.</p></aside>
+<p>Но массив ≠ указатель на первый элемент:</p>
+<script type="text/x-cpp" data-run="wrap">
+int array[10];
+int* p = array;
+std::cout << sizeof(array) << ' ' << sizeof(p) << '\n'; // 40 и размер указателя (8 на 64-бит, 4 здесь)
+// &array имеет тип int(*)[10]
+// &p     имеет тип int**
+</script>
+<p>Сравнивать массивы через <code>&gt;</code>, <code>&lt;</code>, <code>==</code> бессмысленно: сравниваются указатели на первые элементы.</p>
+<script type="text/x-cpp">
+int a[]{1, 2, 3};
+int b[]{1, 2, 3};
+a == a; // всегда true
+a == b; // всегда false — разные адреса, хоть содержимое и одинаковое
+</script>
+<p>Разность указателей на элементы одного массива — <b>количество элементов</b> между ними, а не байтов:</p>
+<script type="text/x-cpp" data-run="wrap">
+int arr[10];
+std::cout << (&arr[1] - &arr[0]) << '\n'; // 1
+std::cout << (&arr[2] - &arr[1]) << '\n'; // 1
+std::cout << (&arr[4] - &arr[1]) << '\n'; // 3
+</script>
+<aside class="c c-imp"><p>Компилятор знает <code>sizeof(int)</code> и сам делит разницу в байтах на размер типа. Это определено стандартом и корректно <b>только для элементов одного массива</b>.</p></aside>
+<aside class="c c-ub" data-l="⚠ Массив в функции «забывает» размер"><script type="text/x-cpp" data-run>
+#include <iostream>
+void f(int arr[]) {                       // на самом деле int* arr
+    std::cout << sizeof(arr) << '\n';     // размер указателя, а не массива!
+}
+int main() {
+    int a[10];
+    std::cout << sizeof(a) << '\n';       // 40
+    f(a);
+}
+</script><p>Поэтому в функцию передают ещё и размер: <code>void f(int* arr, int n)</code>. Компилятор даже предупредит про <code>sizeof</code> от параметра-массива.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">16.3</span> Правила работы с массивами</h2>
+<ol>
+<li><b>Нельзя создавать массивы ссылок и массивы функций</b>, но можно — массивы указателей и указателей на функции.
+<script type="text/x-cpp">
+int& a[10];        // CE: массив ссылок запрещён
+int b[20](int);    // CE: массив функций запрещён
+
+int* c[30];        // OK: массив указателей на int
+int (*d[40])(int); // OK: массив указателей на функции int(int)
+</script></li>
+<li><b>Нельзя определить массив неизвестного размера</b>, но можно объявить (например, <code>extern</code>).
+<script type="text/x-cpp">
+int a[];             // CE: нет ни размера, ни инициализатора
+int b[] = {1, 2, 3}; // OK: размер 3
+extern int c[];      // OK: объявление без определения
+</script></li>
+<li><b>При сравнении массивов сравниваются адреса первых элементов</b>, а не содержимое. Для разных массивов <code>==</code> всегда false.
+<script type="text/x-cpp" data-run="wrap">
+int a[3]{1, 2, 3};
+int b[3]{1, 2, 3};
+std::cout << (a == b) << ' ' << (a == a) << '\n'; // 0 1
+</script></li>
+<li><b>Массивы нельзя присваивать</b> друг другу (исключение — строковые литералы при инициализации).
+<script type="text/x-cpp">
+int a[3];
+int b[3]{1, 2, 3};
+a = b; // CE: присваивание массивов запрещено
+</script></li>
+<li><b>Лайфхак!</b> Если массив — поле структуры или класса, структуры присваивать можно, и массив скопируется как часть объекта.
+<script type="text/x-cpp" data-run>
+#include <iostream>
+struct S {
+    int array[3];
+};
+int main() {
+    S c{1, 2, 3};
+    S d{4, 5, 6};
+    c = d; // OK: c.array теперь {4, 5, 6}
+    std::cout << c.array[0] << c.array[1] << c.array[2] << '\n';
+}
+</script></li>
+</ol>
+</section>
+
+<section>
+<h2><span class="sn">16.4</span> Динамические массивы</h2>
+<aside class="c c-def"><p><b>Динамический массив</b> — массив, размер которого определяется во время выполнения, а память выделяется в куче через <code>new[]</code>. Существует до явного освобождения через <code>delete[]</code> или до конца программы.</p></aside>
+<p><code>new[]</code> возвращает <b>указатель на первый элемент</b> (а не на массив!), поэтому его нельзя использовать везде, где имя статического массива:</p>
+<script type="text/x-cpp">
+int* array = new int[10];
+sizeof(new int[10]) == sizeof(int*); // true
+sizeof(*array) == sizeof(int);       // true
+</script>
+<aside class="c c-imp"><p>Указатель <code>array</code> не хранит размер массива. <code>sizeof(array)</code> вернёт размер указателя, а не количество выделенных байт. Размер надо помнить самому.</p></aside>
+<p>Зато размер динамического массива может задаваться <b>переменной</b>:</p>
+<script type="text/x-cpp" data-run data-stdin="5">
+#include <iostream>
+int main() {
+    int n;
+    std::cin >> n;
+    // int a[n]{1, 2, 3};          // запрещено стандартом
+    int* b = new int[n]{1, 2, 3};  // OK, размер — во время выполнения
+    for (int i = 0; i < n; ++i) std::cout << b[i] << ' '; // 1 2 3 0 0
+    std::cout << '\n';
+    delete[] b;
+    b = nullptr;
+}
+</script>
+<aside class="c c-ub"><p>Память из <code>new[]</code> освобождается <b>только</b> через <code>delete[]</code>. <code>delete</code> без скобок для массива — UB.</p>
+<script type="text/x-cpp">
+int* array = new int[10];
+// ... работа с массивом ...
+delete[] array;  // правильно
+// delete array; // ОПАСНО! UB
+</script></aside>
+<aside class="c c-imp"><p>После <code>delete[]</code> указатель становится висячим. Хорошая практика — сразу обнулить: <code>array = nullptr;</code></p></aside>
+<div class="trace" data-title="Динамический массив в куче">
+<script type="text/x-cpp">
+int n = 4;
+int* a = new int[n];
+for (int i = 0; i < n; ++i)
+    a[i] = i * i;
+delete[] a;
+a = nullptr;
+</script>
+<script type="application/json">{"steps":[
+{"l":1,"n":"Размер известен только во время выполнения.","st":[{"f":"main()","v":[["n","int","4"]]}]},
+{"l":2,"n":"<code>new int[4]</code>: 16 байт в куче подряд. Значения не инициализированы — там мусор.","st":[{"f":"main()","v":[["n","int","4"],["a","int*","0x5000",{"p":"h1.0"}]]}],"hp":[{"id":"h1","l":"new int[4]","a":"0x5000","c":["?","?","?","?"]}]},
+{"l":4,"n":"Заполняем квадратами через <code>a[i]</code> — синтаксис как у обычного массива.","st":[{"f":"main()","v":[["n","int","4"],["a","int*","0x5000",{"p":"h1.0"}]]}],"hp":[{"id":"h1","l":"new int[4]","a":"0x5000","c":["0","1","4","9"]}]},
+{"l":5,"n":"<code>delete[]</code> освобождает весь блок (ровно потому, что со скобками).","st":[{"f":"main()","v":[["n","int","4"],["a","int*","0x5000",{"p":"h1.0","dang":true}]]}],"hp":[{"id":"h1","l":"освобождено","a":"0x5000","c":["?","?","?","?"],"free":true}]},
+{"l":6,"n":"Обнуляем указатель — висячего больше нет.","st":[{"f":"main()","v":[["n","int","4"],["a","int*","nullptr"]]}]}
+]}</script>
+</div>
+<aside class="c c-prod"><p>Ручной <code>new[]</code>/<code>delete[]</code> в реальном коде почти не встречается: его заменяет <code>std::vector</code>, который сам растёт и сам освобождает память (второй модуль курса). Но <code>vector</code> внутри устроен ровно так: указатель на блок в куче, размер и ёмкость. Так что сейчас ты изучаешь его потроха.</p></aside>
+<div class="qz" data-type="multi" data-ans="1,3">
+<div class="q">Что из этого — ошибки (CE или UB)?</div>
+<ol><li><code>int* p = new int[5]; delete[] p;</code></li><li><code>int* p = new int[5]; delete p;</code></li><li><code>int a[3]{}; int* p = a; std::cout &lt;&lt; p[2];</code></li><li><code>int a[3]{}; std::cout &lt;&lt; a[3];</code></li></ol>
+<div class="why">B — <code>delete</code> без скобок для массива: UB. D — выход за границу (индексы 0..2): UB. A и C корректны.</div>
+</div>
+</section>

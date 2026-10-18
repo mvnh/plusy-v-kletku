@@ -1,0 +1,86 @@
+<section>
+<h2><span class="sn">7.1</span> Переполнение</h2>
+<p>Помимо особенностей вещественных чисел, есть особенности целых из-за ограничений архитектуры. Главная — <b>переполнение</b>: результат арифметической операции превышает максимальное значение, представимое в типе.</p>
+<aside class="c c-imp" data-l="Знаковые vs беззнаковые">
+<ul>
+<li><b>Беззнаковые (unsigned)</b>: циклический перенос, 255 + 1 = 0 для <code>unsigned char</code>. Это <b>определённое</b> поведение, арифметика по модулю 2ⁿ.</li>
+<li><b>Знаковые (signed)</b>: поведение <b>не определено</b> в C/C++ (UB). Но на уровне процессора обычно происходит циклический переход: 127 + 1 = −128 для <code>signed char</code> (8 бит, дополнительный код).</li>
+</ul>
+</aside>
+<script type="text/x-cpp" data-run data-ub>
+#include <iostream>
+int main() {
+    unsigned char u = 255; // максимальное беззнаковое
+    u++;                   // u = 0 (циклический перенос)
+
+    signed char s = 127;   // максимальное положительное знаковое
+    s++;                   // переполнение! на практике часто s = -128
+
+    signed char t = -128;  // минимальное знаковое
+    t--;                   // на практике часто t = 127
+
+    std::cout << +u << ' ' << +s << ' ' << +t << '\n';
+    return 0;
+}
+</script>
+<aside class="c c-tip"><p>Тонкость для зануд: <code>s++</code> для <code>signed char</code> формально считается в <code>int</code> (там переполнения нет: 128 спокойно влезает), а потом 128 преобразуется обратно в <code>signed char</code>. С C++20 такое сужающее преобразование определено и даёт −128. Настоящее UB — когда переполняется сам <code>int</code>/<code>long long</code>, как в примере ниже.</p></aside>
+<p>Покрути «циферблат»: тип int8, жми <b>+1</b> на 127 и <b>−1</b> на −128. Числа ходят по кругу:</p>
+<div class="viz-slot" data-viz="bits" data-cfg='{"type":"int8","value":127,"only":["int8","uint8"]}'></div>
+<p style="font-family:var(--f-mono);text-align:center">… 125 → 126 → 127 → <b style="color:var(--red)">−128</b> → −127 → … → −1 → 0 → 1 → …</p>
+</section>
+
+<section>
+<h2><span class="sn">7.2</span> Почему UB — это не просто «прокрутит по кругу»</h2>
+<p>Если бы знаковое переполнение всегда давало «круг», зачем называть его UB? Потому что компилятор <b>имеет право считать, что UB никогда не происходит</b>, и оптимизировать код исходя из этого. Самый наглядный пример:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+#include <climits>
+bool always(int x) {
+    return x + 1 > x; // «очевидно» всегда true... кроме x == INT_MAX?
+}
+int main() {
+    std::cout << always(INT_MAX) << '\n';
+    return 0;
+}
+</script>
+<p>Открой этот код в песочнице и запусти с <code>-O0</code> и <code>-O2</code>. Без оптимизаций процессор честно «прокрутит» <code>INT_MAX + 1</code> в отрицательное число и вернёт 0. С <code>-O2</code> компилятор рассуждает: «переполнение — UB, значит, его не бывает, значит, <code>x + 1 &gt; x</code> всегда истинно» и заменяет функцию на <code>return true</code>. Один и тот же код, разные ответы. Это и есть UB. (А g++ вообще может выдать 1 даже без оптимизаций.)</p>
+<aside class="c c-ub"><p>Правило: <b>не допускай знакового переполнения в принципе</b>. Проверяй до операции: <code>if (a &gt; INT_MAX - b) { /* не влезет */ }</code>, или считай в более широком типе: <code>static_cast&lt;long long&gt;(a) + b</code>.</p></aside>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+#include <climits>
+int main() {
+    int a = 1000000000; // 1 миллиард
+    int b = 2000000000; // 2 миллиарда
+    // int c = a + b;   // UB! (вопрос 1.11 семинара)
+    if (b > 0 && a > INT_MAX - b) std::cout << "не влезет в int\n";
+    long long c = static_cast<long long>(a) + b;
+    std::cout << c << '\n'; // 3000000000
+    return 0;
+}
+</script>
+<aside class="c c-prod">
+<ul>
+<li><b>Ariane 5, 1996.</b> Через 37 секунд после старта ракета самоуничтожилась: 64-битное вещественное значение горизонтальной скорости преобразовали в 16-битное знаковое целое, оно не влезло, и инерциальная система «легла». Код был перенесён с Ariane 4, у которой скорости были меньше. Это один из самых дорогих багов в истории.</li>
+<li><b>Проблема 2038 года.</b> Время в UNIX — число секунд с 1 января 1970. В 32-битном знаковом <code>time_t</code> оно переполнится 19 января 2038 года в 03:14:07 UTC. Поэтому современные системы перешли на 64-битный <code>time_t</code>, а старые встраиваемые железки до сих пор ждут своего «2038».</li>
+</ul>
+</aside>
+<div class="qz" data-type="single" data-ans="2">
+<div class="q">Что из этого — определённое поведение?</div>
+<ol><li><code>int x = INT_MAX; x++;</code></li><li><code>long long y = LLONG_MIN; y--;</code></li><li><code>unsigned z = 0; z--;</code></li><li><code>int w = 5 / 0;</code></li></ol>
+<div class="why">Только беззнаковое переполнение определено: <code>z</code> станет 4294967295 (для 32-битного <code>unsigned</code>). Остальное — UB.</div>
+</div>
+<div class="qz" data-type="out" data-ans="0">
+<div class="q">Вопрос 1.10 семинара. Что выведет программа?</div>
+<script type="text/x-cpp">
+#include <iostream>
+
+int main() {
+    unsigned char x = 255;
+    x++;
+    std::cout << (int)x << "\n";
+    return 0;
+}
+</script>
+<div class="why"><code>unsigned char</code>: 255 + 1 по модулю 256 = <b>0</b>. Законно, «результат впечатляет». А <code>(int)x</code> нужен, чтобы напечатать число, а не символ с кодом 0.</div>
+</div>
+</section>

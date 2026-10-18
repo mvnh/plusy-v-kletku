@@ -1,0 +1,108 @@
+<section>
+<h2><span class="sn">18.1</span> Файловые потоки</h2>
+<p>Для работы с файлами в C++ используются потоки из <code>&lt;fstream&gt;</code>. Три основных типа:</p>
+<ul>
+<li><code>std::ifstream</code> — входной поток (чтение из файла);</li>
+<li><code>std::ofstream</code> — выходной поток (запись в файл);</li>
+<li><code>std::fstream</code> — двунаправленный (чтение и запись).</li>
+</ul>
+<p>Файл можно открыть при создании объекта или методом <code>open()</code>:</p>
+<script type="text/x-cpp">
+#include <fstream>
+#include <iostream>
+
+std::ifstream in("input.txt");
+
+std::ofstream out;
+out.open("output.txt");
+
+in.close();
+out.close();
+</script>
+<aside class="c c-imp"><p>Файловый поток <b>автоматически закрывается</b> при выходе из области видимости (это RAII, глава 25). Явный <code>close()</code> не обязателен, но полезен, чтобы освободить файл прямо здесь и сейчас.</p></aside>
+<aside class="c c-ub"><p>Если файл не найден (при чтении) или не удалось создать (при записи), поток переходит в <b>состояние ошибки</b>. Всегда проверяй, открылся ли файл!</p>
+<script type="text/x-cpp" data-run>
+#include <fstream>
+#include <iostream>
+int main() {
+    std::ifstream in("data.txt");
+    if (!in.is_open()) {
+        std::cerr << "Cannot open file!\n";
+        return 1;
+    }
+}
+</script></aside>
+<aside class="c c-tip"><p>Каждый запуск в этой песочнице получает свою чистую временную папку, которая удаляется после завершения: можно записать файл и тут же прочитать его обратно, но между запусками файлы не сохраняются. Пример выше специально упадёт с «Cannot open file!» и кодом 1: файла <code>data.txt</code> нет.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">18.2</span> Чтение</h2>
+<p>Те же способы, что и с <code>std::cin</code>:</p>
+<ul><li><code>&gt;&gt;</code> — по словам (до пробела или новой строки);</li><li><code>std::getline()</code> — по строкам (с пробелами);</li><li><code>get()</code>, <code>read()</code> — побайтово.</li></ul>
+<script type="text/x-cpp" data-run>
+#include <fstream>
+#include <iostream>
+#include <string>
+int main() {
+    { // сначала подготовим файл
+        std::ofstream out("input.txt");
+        out << "10 20 30\nsecond line here\n";
+    } // out закрылся сам
+
+    std::ifstream in("input.txt");
+    int number, sum = 0;
+    for (int i = 0; i < 3 && in >> number; ++i) sum += number; // чтение чисел
+    std::cout << "sum = " << sum << '\n';
+
+    std::string line;
+    std::getline(in, line);                 // дочитываем хвост первой строки ('\n')
+    while (std::getline(in, line)) {        // чтение по строкам
+        std::cout << "line: " << line << '\n';
+    }
+}
+</script>
+<aside class="c c-imp"><p>Цикл <code>while (in &gt;&gt; x)</code> корректно завершается при достижении конца файла или ошибке: поток в условии приводится к <code>bool</code>.</p></aside>
+<aside class="c c-ub" data-l="⚠ Антипаттерн while (!in.eof())"><p><code>while (!in.eof()) { in &gt;&gt; x; sum += x; }</code> обработает последнее число <b>дважды</b> (или мусор): флаг <code>eof</code> выставляется только <i>после</i> неудачной попытки чтения. Правильно — проверять результат самого чтения: <code>while (in &gt;&gt; x)</code>.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">18.3</span> Запись и режимы открытия</h2>
+<p>Запись — так же, как в <code>std::cout</code>:</p>
+<script type="text/x-cpp" data-run>
+#include <fstream>
+#include <iostream>
+#include <string>
+int main() {
+    {
+        std::ofstream out("output.txt");
+        out << "Hello, file!\n";
+        out << 42 << ' ' << 3.14 << '\n';
+    }
+    {
+        std::ofstream log("output.txt", std::ios::app); // дописать в конец
+        log << "appended line\n";
+    }
+    std::ifstream in("output.txt");
+    std::string line;
+    while (std::getline(in, line)) std::cout << line << '\n';
+}
+</script>
+<aside class="c c-imp"><p>По умолчанию <code>std::ofstream</code> <b>перезаписывает</b> файл. Чтобы дописывать в конец, нужен флаг <code>std::ios::app</code>: <code>std::ofstream out("log.txt", std::ios::app);</code></p></aside>
+<p>Режимы задаются битовыми флагами (помнишь <code>|</code> из главы 5?):</p>
+<div class="tw"><table>
+<tr><th>Флаг</th><th>Смысл</th></tr>
+<tr><td><code>std::ios::in</code></td><td>чтение (по умолчанию у <code>ifstream</code>)</td></tr>
+<tr><td><code>std::ios::out</code></td><td>запись (по умолчанию у <code>ofstream</code>)</td></tr>
+<tr><td><code>std::ios::app</code></td><td>дописывание в конец</td></tr>
+<tr><td><code>std::ios::binary</code></td><td>двоичный режим вместо текстового</td></tr>
+</table></div>
+<script type="text/x-cpp">
+std::fstream f("data.bin", std::ios::in | std::ios::out | std::ios::binary);
+</script>
+<aside class="c c-prod"><p>Режим <code>app</code> — стандартный способ писать логи: каждый запуск сервиса дописывает свои строки, не стирая чужие. А <code>binary</code> нужен для картинок, архивов и любых «не текстовых» данных: в текстовом режиме на Windows <code>'\n'</code> при записи превращается в <code>"\r\n"</code>, и бинарник ломается.</p></aside>
+<div class="qz" data-type="single" data-ans="1">
+<div class="q">Программа каждый запуск пишет строку в <code>log.txt</code> через <code>std::ofstream out("log.txt");</code>. Почему в файле всегда только одна строка?</div>
+<ol><li>Файл не закрывается</li><li>По умолчанию <code>ofstream</code> перезаписывает файл; нужен <code>std::ios::app</code></li><li>Нужно писать <code>std::endl</code> вместо <code>'\n'</code></li></ol>
+<div class="why">Режим <code>out</code> без <code>app</code> обрезает файл при открытии.</div>
+</div>
+</section>

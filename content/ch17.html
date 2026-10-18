@@ -1,0 +1,282 @@
+<section>
+<h2><span class="sn">17.1</span> C-строки</h2>
+<aside class="c c-def"><p><b>C-строка</b> — массив символов типа <code>char</code>, завершающийся нулевым символом <code>'\0'</code> (его ещё называют <b>терминалом</b>).</p></aside>
+<div class="trace" data-title="Что лежит в памяти у char s[] = &quot;abc&quot;">
+<script type="text/x-cpp">
+char s[] = "abc";
+s[1] = 'X';
+s[1] = '\0';
+std::cout << s << '\n';
+</script>
+<script type="application/json">{"steps":[
+{"l":1,"n":"Литерал скопировался в массив, и в конце <b>автоматически</b> появился <code>'\\0'</code>. Поэтому размер массива 4, а не 3.","st":[{"f":"main()","v":[["s","char[4]",["'a'","'b'","'c'","'\\0'"]]]}]},
+{"l":2,"n":"Массив изменяемый (это копия на стеке), можно менять символы.","st":[{"f":"main()","v":[["s","char[4]",["'a'","'X'","'c'","'\\0'"]]]}]},
+{"l":3,"n":"Записали терминал в середину. Символ <code>'c'</code> никуда не делся…","st":[{"f":"main()","v":[["s","char[4]",["'a'","'\\0'","'c'","'\\0'"]]]}]},
+{"l":4,"n":"…но все функции C-строк (и вывод через <code>cout</code>) идут до <b>первого</b> <code>'\\0'</code>. Напечатается только «a».","st":[{"f":"main()","v":[["s","char[4]",["'a'","'\\0'","'c'","'\\0'"]]]}],"out":"a\n"}
+]}</script>
+</div>
+<h3>Строковые литералы</h3>
+<p>Записываются в двойных кавычках: <code>"Hello"</code>. Особенности:</p>
+<ol>
+<li>Это массивы типа <code>const char[N]</code>, где N = длина + 1 (с учётом терминала). <code>sizeof("Hello") == 6</code>.</li>
+<li>Хранятся в статической области памяти (часто в «таблице строковых литералов»).</li>
+<li>При инициализации массива <code>char</code> литералом происходит <b>копирование</b> (особый случай, разрешённый стандартом): <code>char s[] = "abc";</code> создаёт <code>{'a','b','c','\0'}</code>.</li>
+<li>Сравнение через <code>==</code> сравнивает <b>адреса</b>, а не содержимое:
+<script type="text/x-cpp">
+const char* a = "hello";
+const char* b = "hello";
+std::cout << (a == b); // может быть 1 или 0 — зависит от компилятора!
+</script>
+Стандарт не гарантирует, что одинаковые литералы лягут по одному адресу.</li>
+</ol>
+<aside class="c c-ub"><p>Строковые литералы имеют тип <code>const char[]</code>. Попытка изменить их (например, <code>char* p = (char*)"abc"; p[0] = 'x';</code>) — неопределённое поведение (часто — падение: литералы лежат в read-only памяти).</p></aside>
+<h3>Работа с C-строками</h3>
+<p>Функции из <code>&lt;cstring&gt;</code>:</p>
+<script type="text/x-cpp" data-run>
+#include <cstring>
+#include <iostream>
+int main() {
+    char s1[20] = "Hello";
+    char s2[] = "World";
+
+    std::strcpy(s1, s2);          // s1 = "World"
+    std::strcat(s1, "!");         // s1 = "World!"
+    int len = std::strlen(s1);    // 6
+    int cmp = std::strcmp(s1, s2); // сравнение по содержимому: >0, т.к. s1 длиннее
+    std::cout << s1 << ' ' << len << ' ' << (cmp > 0) << '\n';
+}
+</script>
+<aside class="c c-ub"><p><code>strcpy</code>, <code>strcat</code> и подобные <b>не проверяют границы</b> буфера — легко получить переполнение и UB. Избегай их в новых программах.</p></aside>
+<aside class="c c-prod"><p>Переполнения буфера на C-строках — источник легендарных уязвимостей. Червь Морриса (1988) атаковал <code>gets()</code> в сервисе fingerd, Heartbleed (2014, OpenSSL) — чтение за границей буфера, через которое утекали приватные ключи серверов. Функцию <code>gets</code> вообще удалили из стандарта C11.</p></aside>
+<aside class="c c-imp"><p>В современном C++ используй <code>std::string</code> или <code>std::string_view</code>.</p></aside>
+<div class="qz" data-type="out" data-ans="6 5">
+<div class="q">Что выведет программа?</div>
+<script type="text/x-cpp">
+#include <iostream>
+#include <cstring>
+int main() {
+    char s[] = "Hello";
+    std::cout << sizeof(s) << ' ' << std::strlen(s) << '\n';
+}
+</script>
+<div class="why"><code>sizeof</code> считает байты массива с терминалом: 6. <code>strlen</code> считает символы до <code>'\0'</code>: 5.</div>
+</div>
+</section>
+
+<section>
+<h2><span class="sn">17.2</span> std::string</h2>
+<aside class="c c-def"><p><code>std::string</code> — класс стандартной библиотеки (<code>&lt;string&gt;</code>), изменяемая строка с автоматическим управлением памятью.</p></aside>
+<aside class="c c-imp"><p>В отличие от C-строк, <code>std::string</code> может содержать <code>'\0'</code> внутри и не считает его концом: длина хранится отдельно.</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+#include <string>
+using namespace std::string_literals;
+int main() {
+    std::string s = "a\0b"s;  // суффикс s — литерал std::string
+    std::cout << s.size() << '\n'; // 3
+}
+</script></aside>
+<p>Преимущества <code>std::string</code>:</p>
+<ul><li>автоматическое выделение и освобождение памяти;</li><li>безопасные операции (проверка границ в методе <code>at()</code>);</li><li>операции <code>+</code>, <code>==</code>, <code>&lt;</code> и т.д.;</li><li>метод <code>size()</code> — длина строки.</li></ul>
+<script type="text/x-cpp" data-run>
+#include <string>
+#include <iostream>
+int main() {
+    std::string s1 = "Hello";
+    std::string s2 = "World";
+    std::string s3 = s1 + " " + s2; // "Hello World"
+
+    if (s1 == "Hello") std::cout << "equal by content\n"; // сравнение по содержимому!
+    std::cout << s3 << ' ' << s3.size() << '\n'; // 11
+}
+</script>
+<aside class="c c-imp"><p><code>std::string</code> можно передать в функцию, ждущую <code>const char*</code>, через метод <code>c_str()</code>:</p>
+<script type="text/x-cpp">
+void legacy_func(const char* s);
+legacy_func(s3.c_str()); // OK
+</script></aside>
+</section>
+
+<section>
+<h2><span class="sn">17.3</span> Методы std::string</h2>
+<div class="tw"><table>
+<tr><th>Метод</th><th>Что делает</th></tr>
+<tr><td><code>size()</code></td><td>длина строки</td></tr>
+<tr><td><code>empty()</code></td><td>пуста ли строка (<code>size() == 0</code>)</td></tr>
+<tr><td><code>substr(pos, len)</code></td><td>подстрока с позиции <code>pos</code> длиной <code>len</code> (без <code>len</code> — до конца)</td></tr>
+<tr><td><code>find(str)</code></td><td>позиция первого вхождения или <code>std::string::npos</code></td></tr>
+<tr><td><code>replace(pos, count, str)</code></td><td>заменить <code>count</code> символов с <code>pos</code> на <code>str</code></td></tr>
+<tr><td><code>at(i)</code></td><td>доступ с проверкой границ (выход за пределы — исключение <code>std::out_of_range</code>)</td></tr>
+</table></div>
+<script type="text/x-cpp" data-run>
+#include <string>
+#include <iostream>
+int main() {
+    std::string s = "Hello, World!";
+    std::cout << s.size() << '\n';   // 13
+    std::cout << s.empty() << '\n';  // 0 (false)
+
+    std::string sub = s.substr(7, 5); // "World"
+    std::cout << sub << '\n';
+
+    size_t pos = s.find("World"); // 7
+    if (pos != std::string::npos) {
+        std::cout << "Found at: " << pos << '\n';
+    }
+
+    s.replace(0, 5, "Hi"); // "Hi, World!"
+    std::cout << s << '\n';
+}
+</script>
+<p>Пример с <code>at()</code> из конспекта:</p>
+<script type="text/x-cpp" data-run="wrap">
+std::string s = "Hello";
+try {
+    char c = s.at(100); // выбросит std::out_of_range
+    std::cout << c << '\n';
+} catch (const std::out_of_range& e) {
+    std::cout << "Index out of range: " << e.what() << '\n';
+}
+std::cout << s[1] << '\n'; // [] не проверяет границы: s[100] было бы UB
+</script>
+<aside class="c c-tip"><p>Текст из <code>e.what()</code> зависит от стандартной библиотеки: у libstdc++ (g++) и libc++ (clang на macOS) он разный. Подробно исключения разбираются во втором модуле.</p></aside>
+<aside class="c c-imp"><ul>
+<li><code>std::string::npos</code> — статическая константа типа <code>size_t</code>, равная максимальному значению типа. Означает «не найдено».</li>
+<li><code>substr</code>, <code>find</code>, <code>replace</code> работают с позициями (индексами), а не с указателями.</li>
+<li>Все методы спокойно работают с <code>'\0'</code> внутри строки: это не терминал!</li>
+</ul></aside>
+<aside class="c c-ub" data-l="⚠ Ловушка npos"><p><code>if (s.find("x") &gt;= 0)</code> — всегда true: <code>size_t</code> беззнаковый и не бывает меньше нуля. Сравнивай только с <code>std::string::npos</code>.</p></aside>
+<h3>Чтение строки целиком: getline</h3>
+<p><code>&gt;&gt;</code> читает до первого пробельного символа, поэтому строку с пробелами так не прочитать. Для чтения всей строки до <code>'\n'</code> есть <code>std::getline</code>:</p>
+<script type="text/x-cpp" data-run data-stdin="Anna Ivanova">
+#include <string>
+#include <iostream>
+int main() {
+    std::string name;
+    std::cout << "Enter full name: ";
+    std::getline(std::cin, name); // читает всю строку до '\n'
+    std::cout << "You entered: " << name << '\n';
+}
+</script>
+<aside class="c c-ub" data-l="⚠ Смешивание >> и getline"><p>После <code>std::cin &gt;&gt; n;</code> в потоке остаётся <code>'\n'</code>, и следующий <code>getline</code> прочитает пустую строку. Лечится <code>std::cin.ignore();</code> или <code>std::getline(std::cin &gt;&gt; std::ws, line);</code>.</p>
+<script type="text/x-cpp" data-run data-stdin="3&#10;hello world">
+#include <iostream>
+#include <string>
+int main() {
+    int n;
+    std::string line;
+    std::cin >> n;
+    std::getline(std::cin, line);
+    std::cout << "[" << line << "]\n";           // [] — пустая!
+    std::getline(std::cin, line);
+    std::cout << "[" << line << "]\n";           // [hello world]
+}
+</script></aside>
+<h3>Производительность конкатенации</h3>
+<aside class="c c-imp"><p>Многократное сложение строк в цикле может быть неэффективным: каждый <code>+=</code> потенциально вызывает перевыделение памяти и копирование всего содержимого.</p></aside>
+<script type="text/x-cpp">
+std::string result;
+for (int i = 0; i < 1000; ++i) {
+    result += "text"; // возможны многократные перевыделения
+}
+</script>
+<p>Можно заранее зарезервировать память через <code>reserve()</code>:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+#include <string>
+int main() {
+    std::string result;
+    result.reserve(4000); // выделить память один раз (1000 * 4 байта)
+    for (int i = 0; i < 1000; ++i) {
+        result += "text"; // теперь без перевыделений
+    }
+    std::cout << result.size() << ' ' << (result.capacity() >= 4000) << '\n';
+}
+</script>
+<p>Альтернатива — <code>std::ostringstream</code> из <code>&lt;sstream&gt;</code>, оптимизированный для последовательной записи.</p>
+<h3>Преобразования</h3>
+<ul>
+<li><code>std::to_string(42)</code> — число в строку.</li>
+<li><code>std::stoi("42")</code> — строка в <code>int</code>. Бросает <code>std::invalid_argument</code>, если числа нет, и <code>std::out_of_range</code>, если оно не влезает в тип.</li>
+<li><code>std::stod("3.14")</code> → 3.14 — в <code>double</code>.</li>
+<li>Аналогично: <code>std::stof</code>, <code>std::stol</code>, <code>std::stoll</code>, <code>std::stoul</code> и др.</li>
+</ul>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+#include <string>
+int main() {
+    std::string s = std::to_string(42) + "!";
+    int x = std::stoi("123") + 1;
+    double d = std::stod("3.14") * 2;
+    std::cout << s << ' ' << x << ' ' << d << '\n';
+}
+</script>
+</section>
+
+<section>
+<h2><span class="sn">17.4</span> std::string_view</h2>
+<aside class="c c-def"><p><code>std::string_view</code> хранит указатель и длину, но <b>не владеет</b> данными строки. Это «окошко» на чужие символы.</p></aside>
+<p>Когда использовать:</p>
+<ul><li>для передачи строк в функции без лишнего копирования;</li><li>когда данные уже существуют (литерал, <code>std::string</code>, C-строка);</li><li>в read-only алгоритмах.</li></ul>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+#include <string>
+#include <string_view>
+
+void print(std::string_view sv) {
+    std::cout << sv << " (len=" << sv.size() << ")\n";
+}
+
+int main() {
+    print("Hello");          // из литерала
+    std::string s = "World";
+    print(s);                // из std::string
+    char buf[] = "C-string";
+    print(buf);              // из C-строки
+
+    std::string_view w = "Hello, World!";
+    print(w.substr(7, 5));   // "World" — подстрока без копирования
+}
+</script>
+<aside class="c c-ub"><p>Если исходная строка уничтожена, <code>string_view</code> <b>повисает</b>, как указатель:</p>
+<script type="text/x-cpp">
+std::string_view sv;
+{
+    std::string s = "temporary";
+    sv = s;
+} // s уничтожена
+std::cout << sv; // UB! данные уже недоступны
+</script></aside>
+<aside class="c c-imp"><ul><li>По умолчанию храни строки в <code>std::string</code>.</li><li>Используй <code>std::string_view</code> для параметров функций (read-only).</li></ul></aside>
+</section>
+
+<section>
+<h2><span class="sn">17.5</span> Изменяемость строк</h2>
+<aside class="c c-def"><p><code>std::string</code> — <b>изменяемый</b> строковый тип: можно менять символы, добавлять и удалять подстроки, переприсваивать.</p></aside>
+<script type="text/x-cpp" data-run="wrap">
+std::string s = "Hello";
+s[0] = 'h';             // изменение символа
+s += " world";          // конкатенация
+s.replace(6, 5, "C++"); // замена части строки
+std::cout << s << '\n'; // hello C++
+</script>
+<aside class="c c-imp"><p>Если объект объявлен как <code>const std::string</code>, он <b>логически неизменяем</b>: любая попытка модификации — ошибка компиляции. Но сам тип <code>std::string</code> по природе изменяемый.</p></aside>
+<h3>C-строки: когда изменяемы, а когда нет</h3>
+<ul>
+<li><b>Неизменяемые</b>: строковые литералы вроде <code>"text"</code> лежат в read-only памяти. Даже если старый компилятор разрешит присвоить литерал в <code>char*</code>, запись туда — UB.</li>
+<li><b>Изменяемые</b>: массив, инициализированный литералом (<code>char s[] = "text";</code>), — копия данных в изменяемой памяти (обычно на стеке). Его можно безопасно менять.</li>
+</ul>
+<script type="text/x-cpp">
+char arr[] = "hello";    // изменяемая копия
+arr[0] = 'H';            // OK
+const char* p = "hello"; // указатель на литерал
+// p[0] = 'H';           // ОШИБКА: UB (а с const — CE)
+</script>
+<aside class="c c-imp"><p>Тип строкового литерала — <code>const char[N]</code>. Присваивание его в <code>char*</code> было разрешено в C++98/03, но запрещено с C++11. Современные компиляторы дают ошибку или предупреждение.</p></aside>
+<aside class="c c-imp"><p>В современном C++ для изменяемых строк используй <code>std::string</code>. C-строки — только для взаимодействия с legacy-кодом и системными API.</p></aside>
+<div class="qz" data-type="single" data-ans="3">
+<div class="q">Какой из вариантов корректно проверяет, что в строке <code>s</code> есть подстрока <code>"cat"</code>?</div>
+<ol><li><code>if (s.find("cat"))</code></li><li><code>if (s.find("cat") &gt;= 0)</code></li><li><code>if (s.find("cat") != -1)</code> (компилируется, но читается плохо)</li><li><code>if (s.find("cat") != std::string::npos)</code></li></ol>
+<div class="why">A ложно, если «cat» стоит в самом начале (позиция 0). B всегда истинно. C технически работает (−1 превращается в максимальный <code>size_t</code> = <code>npos</code>), но это хак. D — канон.</div>
+</div>
+</section>

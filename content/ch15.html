@@ -1,0 +1,131 @@
+<aside class="c c-imp" data-l="Зачем вообще умные указатели"><p>Сырые указатели (<code>int*</code>, <code>float*</code>…) дают полный ручной контроль над памятью, но легко приводят к ошибкам:</p>
+<ul><li>утечки памяти (забыли <code>delete</code>);</li><li>двойное освобождение (<code>delete</code> дважды);</li><li>висячие указатели;</li><li>исключения, прерывающие выполнение до <code>delete</code>.</li></ul>
+<p>Для автоматического управления временем жизни в C++11 появились <b>умные указатели</b> — классы-обёртки вокруг сырых указателей, реализующие концепцию <b>RAII</b> (Resource Acquisition Is Initialization, подробно в главе 25). Подключаются через <code>&lt;memory&gt;</code>.</p></aside>
+
+<section>
+<h2><span class="sn">15.1</span> std::unique_ptr</h2>
+<aside class="c c-def"><p><code>std::unique_ptr&lt;T&gt;</code> — умный указатель, который <b>единолично владеет</b> объектом типа T. Только один <code>unique_ptr</code> в каждый момент может указывать на данный объект. Копировать его запрещено на уровне компиляции, владение можно лишь <b>передать (переместить)</b> другому <code>unique_ptr</code>. Объект удаляется автоматически, когда <code>unique_ptr</code> выходит из области видимости.</p></aside>
+<ul><li>Нельзя копировать.</li><li>Можно перемещать (владение передаётся).</li><li>Автоматически вызывает <code>delete</code> при уничтожении.</li><li>Значение по умолчанию — нулевой указатель.</li></ul>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+#include <memory>
+#include <utility>
+
+void foo() {
+    std::unique_ptr<int> p(new int(42)); // p владеет объектом
+    auto q = std::make_unique<int>(42);  // рекомендуемый способ создания
+    std::cout << *p << ' ' << *q << '\n'; // 42 42
+
+    // auto r = q;            // CE: копирование запрещено
+    auto r = std::move(q);    // OK: владение переехало в r
+    std::cout << (q == nullptr) << ' ' << *r << '\n'; // 1 42
+} // здесь память p и r освобождается автоматически, delete писать не нужно
+
+int main() { foo(); }
+</script>
+<aside class="c c-ub"><p><b>Никогда</b> не отдавай один сырой указатель из <code>new</code> двум разным <code>unique_ptr</code>: оба вызовут <code>delete</code> → двойное освобождение и UB.</p>
+<script type="text/x-cpp">
+int* raw = new int(10);
+std::unique_ptr<int> p1(raw);
+std::unique_ptr<int> p2(raw); // ОПАСНО! UB при уничтожении
+</script></aside>
+<aside class="c c-imp"><p>Всегда используй <code>std::make_unique</code>: так не будет утечек при исключениях и путаницы с двойными выделениями.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">15.2</span> std::shared_ptr</h2>
+<aside class="c c-def"><p><code>std::shared_ptr&lt;T&gt;</code> — умный указатель с <b>разделяемым владением</b>. Несколько <code>shared_ptr</code> могут указывать на один объект. Объект удаляется, когда уничтожается <b>последний</b> из них (счётчик ссылок становится равным нулю).</p></aside>
+<ul><li>Можно копировать — счётчик ссылок увеличивается.</li><li>Можно перемещать.</li><li>Хранит счётчик ссылок.</li><li>Объект удаляется, когда счётчик достигает нуля.</li></ul>
+<div class="trace" data-title="shared_ptr: счётчик ссылок">
+<script type="text/x-cpp">
+void bar() {
+    auto p1 = std::make_shared<int>(100);
+    {
+        auto p2 = p1;
+        std::cout << *p2 << '\n';
+    }
+    std::cout << *p1 << '\n';
+}
+</script>
+<script type="application/json">{"steps":[
+{"l":2,"n":"<code>make_shared</code> создал в куче объект 100 и <b>управляющий блок</b> со счётчиком ссылок = 1.","st":[{"f":"bar()","v":[["p1","shared_ptr<int>","→ 100",{"p":"h1"}]]}],"hp":[{"id":"h1","l":"int · счётчик = 1","c":["100"]}]},
+{"l":4,"n":"Копия <code>p2 = p1</code>: объект тот же, счётчик = 2.","st":[{"f":"bar()","v":[["p1","shared_ptr<int>","→ 100",{"p":"h1"}],["p2","shared_ptr<int>","→ 100",{"p":"h1"}]]}],"hp":[{"id":"h1","l":"int · счётчик = 2","c":["100"]}]},
+{"l":5,"n":"Читаем через <code>p2</code>.","st":[{"f":"bar()","v":[["p1","shared_ptr<int>","→ 100",{"p":"h1"}],["p2","shared_ptr<int>","→ 100",{"p":"h1"}]]}],"hp":[{"id":"h1","l":"int · счётчик = 2","c":["100"]}],"out":"100\n"},
+{"l":6,"n":"<code>p2</code> вышел из блока и уничтожился, счётчик = 1. Объект жив: есть ещё владелец.","st":[{"f":"bar()","v":[["p1","shared_ptr<int>","→ 100",{"p":"h1"}]]}],"hp":[{"id":"h1","l":"int · счётчик = 1","c":["100"]}],"out":"100\n"},
+{"l":7,"n":"","st":[{"f":"bar()","v":[["p1","shared_ptr<int>","→ 100",{"p":"h1"}]]}],"hp":[{"id":"h1","l":"int · счётчик = 1","c":["100"]}],"out":"100\n100\n"},
+{"l":8,"n":"Конец функции: <code>p1</code> уничтожен, счётчик = 0 → <code>delete</code> вызывается автоматически.","st":[],"hp":[{"id":"h1","l":"освобождено (счётчик = 0)","c":["?"],"free":true}],"out":"100\n100\n"}
+]}</script>
+</div>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+#include <memory>
+int main() {
+    auto p1 = std::make_shared<int>(100);
+    std::cout << "count = " << p1.use_count() << '\n'; // 1
+    {
+        auto p2 = p1; // счётчик = 2
+        std::cout << *p2 << ", count = " << p1.use_count() << '\n';
+    } // p2 уничтожен, счётчик = 1
+    std::cout << *p1 << ", count = " << p1.use_count() << '\n';
+} // p1 уничтожен, счётчик = 0 -> delete
+</script>
+<aside class="c c-ub" data-l="⚠ Циклические ссылки"><p>Если два объекта держат <code>shared_ptr</code> друг на друга, их счётчики никогда не обнулятся → <b>утечка</b>. Для разрыва таких циклов используют <code>std::weak_ptr</code>.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">15.3</span> std::weak_ptr</h2>
+<aside class="c c-def"><p><code>std::weak_ptr&lt;T&gt;</code> — <b>наблюдающий</b> (невладеющий) указатель на объект, управляемый <code>shared_ptr</code>. Не увеличивает счётчик ссылок и <b>не продлевает</b> время жизни объекта. Нужен для безопасного наблюдения без циклических зависимостей.</p></aside>
+<ul><li>Нельзя напрямую разыменовать.</li><li>Чтобы получить доступ, вызывают <code>lock()</code>: он возвращает <code>shared_ptr</code> (или пустой, если объект уже удалён).</li><li>Используется для разрыва циклов.</li></ul>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+#include <memory>
+int main() {
+    auto owner = std::make_shared<int>(777);
+    std::weak_ptr<int> observer = owner;
+
+    if (auto ptr = observer.lock()) {
+        std::cout << *ptr << '\n'; // 777
+    } else {
+        std::cout << "Object destroyed\n";
+    }
+
+    owner.reset(); // объект удалён
+
+    if (auto ptr = observer.lock()) {
+        // не выполнится
+    } else {
+        std::cout << "Object destroyed\n"; // OK
+    }
+}
+</script>
+<aside class="c c-imp" data-l="Рекомендации"><ul>
+<li>По умолчанию используй <code>std::unique_ptr</code>.</li>
+<li>Переходи к <code>std::shared_ptr</code>, только если действительно нужно разделяемое владение.</li>
+<li><code>std::weak_ptr</code> — для разрыва циклов или временного наблюдения.</li>
+<li>Избегай сырых указателей для <b>владения</b> памятью.</li>
+</ul></aside>
+<aside class="c c-prod"><p>В кодовой базе Chromium и в Google C++ Style Guide правило звучит так: владение выражается через <code>std::unique_ptr</code>, а голый <code>new</code>/<code>delete</code> в ревью — красный флаг. Классический пример <code>weak_ptr</code> — кэш: кэш «наблюдает» за объектами, но не держит их в живых, если они больше никому не нужны.</p></aside>
+<div class="qz" data-type="out" data-ans="1 2 1">
+<div class="q">Что выведет программа?</div>
+<script type="text/x-cpp">
+#include <iostream>
+#include <memory>
+int main() {
+    auto a = std::make_shared<int>(5);
+    std::weak_ptr<int> w = a;
+    std::cout << a.use_count() << ' ';
+    {
+        auto b = a;
+        std::cout << a.use_count() << ' ';
+    }
+    std::cout << a.use_count() << '\n';
+}
+</script>
+<div class="why"><code>weak_ptr</code> счётчик не увеличивает: 1. Копия <code>b</code> — 2. После блока — снова 1.</div>
+</div>
+<div class="qz" data-type="single" data-ans="1">
+<div class="q">Объект нужен ровно одному владельцу, а потом владение должно перейти функции-обработчику. Что выбрать?</div>
+<ol><li><code>std::shared_ptr</code> и копию в функцию</li><li><code>std::unique_ptr</code> и <code>std::move</code> в функцию</li><li>Сырой указатель и <code>delete</code> в обработчике</li><li><code>std::weak_ptr</code></li></ol>
+<div class="why">Единоличное владение с передачей — ровно то, для чего создан <code>unique_ptr</code>. <code>shared_ptr</code> тут лишний: счётчик и разделённое владение никому не нужны.</div>
+</div>
+</section>

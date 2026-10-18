@@ -1,0 +1,1602 @@
+[
+{
+"id": "s1-1-1",
+"sem": 1,
+"n": "1.1",
+"ch": "01",
+"type": "multi",
+"q": "Какие из строк — корректные идентификаторы C++?",
+"why": "<code>2fast</code> начинается с цифры, <code>for</code> — ключевое слово, <code>user-name</code> содержит минус (это выражение «user минус name»).",
+"opts": [
+"<code>my_var</code>",
+"<code>_count</code>",
+"<code>2fast</code>",
+"<code>for</code>",
+"<code>user-name</code>",
+"<code>User_Name</code>"
+],
+"ans": [
+0,
+1,
+5
+]
+},
+{
+"id": "s1-1-2",
+"sem": 1,
+"n": "1.2",
+"ch": "02",
+"type": "single",
+"q": "Определи тип литерала <code>42LL</code>.",
+"why": "Суффиксы: <code>42</code> — int, <code>42U</code> — unsigned int, <code>42L</code> — long, <code>42LL</code> — long long, <code>3.14</code> — double, <code>3.14f</code> — float, <code>'A'</code> — char, <code>\"A\"</code> — const char[2] (строковый литерал: символ плюс терминал).",
+"opts": [
+"int",
+"long",
+"long long",
+"unsigned long long"
+],
+"ans": 2
+},
+{
+"id": "s1-1-2б",
+"sem": 1,
+"n": "1.2б",
+"ch": "02",
+"type": "single",
+"q": "А какой тип у литерала <code>\"A\"</code>?",
+"why": "Строковый литерал — массив <code>const char</code> длиной «символы + 1» под терминал <code>'\\0'</code>.",
+"opts": [
+"char",
+"const char[2]",
+"std::string",
+"const char[1]"
+],
+"ans": 1
+},
+{
+"id": "s1-1-3",
+"sem": 1,
+"n": "1.3",
+"ch": "02",
+"type": "out",
+"q": "Определи результат выражения.",
+"why": "<code>5 &gt; 3</code> — true, <code>2 == 0</code> — false, true && false = false → печатается <b>0</b>. Короткая логика: если бы левая часть была false, правую даже не вычисляли бы.",
+"code": "#include <iostream>\nint main() {\n    std::cout << ((5 > 3) && (2 == 0));\n}",
+"ans": [
+"0"
+],
+"real": "0"
+},
+{
+"id": "s1-1-4",
+"sem": 1,
+"n": "1.4",
+"ch": "02",
+"type": "open",
+"q": "Объясни разницу между <code>&amp;</code> и <code>&amp;&amp;</code>, <code>|</code> и <code>||</code>. Приведи примеры.",
+"why": "<code>&amp;</code> и <code>|</code> — <b>побитовые</b> операции: работают с каждым битом и всегда вычисляют оба операнда (<code>5 &amp; 3 == 1</code>, <code>5 | 3 == 7</code>). <code>&amp;&amp;</code> и <code>||</code> — <b>логические</b>: работают с bool, результат true/false, и они <b>ленивые</b> — правый операнд не вычисляется, если результат ясен по левому (<code>p != nullptr &amp;&amp; *p &gt; 0</code> безопасно). Пример разницы: <code>2 &amp; 1 == 0</code>, но <code>2 &amp;&amp; 1 == true</code>."
+},
+{
+"id": "s1-1-5",
+"sem": 1,
+"n": "1.5",
+"ch": "02",
+"type": "single",
+"q": "Какой тип имеет результат выражения <code>'a' + 1</code>?",
+"why": "При арифметике всё, что меньше <code>int</code>, сначала повышается до <code>int</code> (integral promotion). Поэтому <code>std::cout &lt;&lt; 'a' + 1</code> печатает 98, а не «b».",
+"opts": [
+"char",
+"int",
+"unsigned char",
+"зависит от компилятора"
+],
+"ans": 1
+},
+{
+"id": "s1-1-6",
+"sem": 1,
+"n": "1.6",
+"ch": "01",
+"type": "out",
+"q": "Чему равен <code>x</code>? Поясни порядок вычислений.",
+"why": "Сначала умножение и деление (приоритет выше): 3·2 = 6, 4/2 = 2. Потом слева направо: 5 + 6 − 2 = <b>9</b>.",
+"code": "#include <iostream>\nint main() {\n    int x = 5 + 3 * 2 - 4 / 2;\n    std::cout << x;\n}",
+"ans": [
+"9"
+],
+"real": "9"
+},
+{
+"id": "s1-1-7",
+"sem": 1,
+"n": "1.7",
+"ch": "03",
+"type": "single",
+"q": "Рассмотри код и объясни результат. (Подумай, корректен ли он вообще.)",
+"why": "В конспекте это помечено как UB: одна переменная меняется и читается в одном выражении. Формально с C++17 операнды <code>&lt;&lt;</code> вычисляются слева направо, и вывод будет 0 01, 1 22, 2 21, 1 00. Но старые компиляторы и стандарты дают другое, а главное правило не меняется: <b>не меняй переменную несколько раз в одном выражении</b>, разноси по строкам. Помни: <code>a++</code> возвращает старое значение, <code>++a</code> — новое.",
+"opts": [
+"0 01 / 1 22 / 2 21 / 1 00 — всё строго определено",
+"Неопределённое/неуточнённое поведение: порядок вычисления операндов нельзя предсказать",
+"Ошибка компиляции"
+],
+"ub": true,
+"code": "#include <iostream>\n\nint main() {\n    int a = 0;\n    std::cout << a << ' ' << a++ << a << '\\n';\n    std::cout << a << ' ' << ++a << a << '\\n';\n    std::cout << a << ' ' << a-- << a << '\\n';\n    std::cout << a << ' ' << --a << a << '\\n';\n    return 0;\n}",
+"ans": 1
+},
+{
+"id": "s1-1-8",
+"sem": 1,
+"n": "1.8",
+"ch": "03",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Две модификации <code>a</code> в одном выражении без упорядочивания, а у операндов <code>+</code> порядок вычисления не определён → <b>UB</b>. clang обычно печатает 2 и выдаёт предупреждение <code>multiple unsequenced modifications</code>, но полагаться на это нельзя.",
+"ub": true,
+"code": "#include <iostream>\n\nint main() {\n    int a = 0;\n    std::cout << (a++ + ++a);\n    return 0;\n}",
+"ans": [
+"UB"
+],
+"real": "2"
+},
+{
+"id": "s1-1-9",
+"sem": 1,
+"n": "1.9",
+"ch": "03",
+"type": "text",
+"q": "Чему равно значение <code>y</code> после выполнения кода?",
+"why": "Два присваивания одной переменной в операндах <code>+</code> не упорядочены → <b>UB</b>. Компиляторы выдают кто 30, кто 40.",
+"ph": "число или UB",
+"ub": true,
+"code": "int main() {\n    int x = 5;\n    int y = (x = 10) + (x = 20);\n    return y;\n}",
+"ans": [
+"UB"
+]
+},
+{
+"id": "s1-1-10",
+"sem": 1,
+"n": "1.10",
+"ch": "07",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "<code>unsigned char</code>: 255 + 1 по модулю 256 = <b>0</b>. Это законное переполнение беззнакового.",
+"code": "#include <iostream>\n\nint main() {\n    unsigned char x = 255;\n    x++;\n    std::cout << (int)x << \"\\n\";\n    return 0;\n}",
+"ans": [
+"0"
+],
+"real": "0"
+},
+{
+"id": "s1-1-11",
+"sem": 1,
+"n": "1.11",
+"ch": "07",
+"type": "out",
+"q": "Что произойдёт при сложении больших чисел? Почему?",
+"why": "3 000 000 000 больше <code>INT_MAX</code> (2 147 483 647). Переполнение знакового — <b>UB</b>. На практике железо «прокрутит» значение и напечатает −1294967296, но компилятор вправе сделать что угодно. Лечится <code>long long</code>.",
+"ub": true,
+"code": "#include <iostream>\n\nint main() {\n    int a = 1000000000; // 1 миллиард\n    int b = 2000000000; // 2 миллиарда\n    int c = a + b;\n    std::cout << c;\n    return 0;\n}",
+"ans": [
+"UB"
+],
+"real": "-1294967296"
+},
+{
+"id": "s1-1-12",
+"sem": 1,
+"n": "1.12",
+"ch": "07",
+"type": "multi",
+"q": "Что из этого — UB? (<code>int a = INT_MAX; a++;</code> / <code>int b = -1; b &gt;&gt; 1;</code> / <code>int c = 5 / 0;</code>)",
+"why": "Переполнение знакового и целочисленное деление на ноль — UB. Сдвиг вправо отрицательного по конспекту implementation-defined (зависит от реализации), а с C++20 он гарантированно арифметический: <code>-1 &gt;&gt; 1 == -1</code>.",
+"opts": [
+"<code>a++</code> при <code>a = INT_MAX</code>",
+"<code>-1 &gt;&gt; 1</code>",
+"<code>5 / 0</code>"
+],
+"ans": [
+0,
+2
+]
+},
+{
+"id": "s1-1-13",
+"sem": 1,
+"n": "1.13",
+"ch": "02",
+"type": "out",
+"q": "Какой будет результат? Почему?",
+"why": "Оба операнда <code>int</code> → целочисленное деление, 0.4 отбрасывается до <b>0</b>.",
+"code": "#include <iostream>\n\nint main() {\n    int a = 20, b = 50;\n    std::cout << a / b << '\\n';\n    return 0;\n}",
+"ans": [
+"0"
+],
+"real": "0"
+},
+{
+"id": "s1-1-14",
+"sem": 1,
+"n": "1.14",
+"ch": "03",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Запятая: сначала <code>a *= 2</code> (a = 10), потом результат — правый операнд <code>a + 3</code> = 13.",
+"code": "#include <iostream>\n\nint main() {\n    int a = 5;\n    int b = (a *= 2, a + 3);\n    std::cout << \"a=\" << a << \", b=\" << b;\n    return 0;\n}",
+"ans": [
+"a=10, b=13"
+],
+"real": "a=10, b=13"
+},
+{
+"id": "s1-1-15",
+"sem": 1,
+"n": "1.15",
+"ch": "03",
+"type": "out",
+"q": "Что выведет программа и с каким кодом она завершится? Введи вывод.",
+"why": "Все три инкремента выполнятся по порядку, <code>x</code> получит значение последнего операнда — старое <code>c</code>, то есть 3. Вывод: <b>234</b>. <code>y = c = 4</code>. Код возврата: <code>(x = 5, y = 10, x + y)</code> = 15.",
+"code": "#include <iostream>\nint main() {\n    int a = 1, b = 2, c = 3;\n    int x = (a++, b++, c++);\n    std::cout << a << b << c;\n    int y = (a, b, c);\n    return (x = 5, y = 10, x + y);\n}",
+"ans": [
+"234"
+],
+"real": "234"
+},
+{
+"id": "s2-2-1",
+"sem": 2,
+"n": "2.1",
+"ch": "02",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Целочисленное деление: 2.75 → <b>2</b>.",
+"code": "#include <iostream>\nint main() {\n    std::cout << 11 / 4 << '\\n';\n}",
+"ans": [
+"2"
+],
+"real": "2"
+},
+{
+"id": "s2-2-2",
+"sem": 2,
+"n": "2.2",
+"ch": "02",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Один операнд <code>double</code> → вещественное деление: <b>2.75</b>.",
+"code": "#include <iostream>\nint main() {\n    std::cout << 11.0 / 4 << '\\n';\n}",
+"ans": [
+"2.75"
+],
+"real": "2.75"
+},
+{
+"id": "s2-2-3",
+"sem": 2,
+"n": "2.3",
+"ch": "02",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Слева <code>true</code> — результат <code>||</code> уже известен, правая часть не вычисляется. <code>a</code> остаётся <b>0</b>.",
+"code": "#include <iostream>\nint main() {\n    int a = 0;\n    bool b = true || (++a > 0);\n    std::cout << a << '\\n';\n}",
+"ans": [
+"0"
+],
+"real": "0"
+},
+{
+"id": "s2-2-4",
+"sem": 2,
+"n": "2.4",
+"ch": "02",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Слева <code>false</code> — <code>&amp;&amp;</code> правую часть не считает: <b>0</b>.",
+"code": "#include <iostream>\nint main() {\n    int a = 0;\n    bool b = false && (++a > 0);\n    std::cout << a << '\\n';\n}",
+"ans": [
+"0"
+],
+"real": "0"
+},
+{
+"id": "s2-2-5",
+"sem": 2,
+"n": "2.5",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "6 = 110, 3 = 011. AND = 010 = 2, OR = 111 = 7, XOR = 101 = 5.",
+"code": "#include <iostream>\nint main() {\n    unsigned short a = 6, b = 3;\n    std::cout << (a & b) << \" \" << (a | b) << \" \" << (a ^ b) << '\\n';\n}",
+"ans": [
+"2 7 5"
+],
+"real": "2 7 5"
+},
+{
+"id": "s2-2-6",
+"sem": 2,
+"n": "2.6",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "3 · 2³ = 24; 3 / 2 = 1.",
+"code": "#include <iostream>\nint main() {\n    unsigned short a = 3;\n    std::cout << (a << 3) << \" \" << (a >> 1) << '\\n';\n}",
+"ans": [
+"24 1"
+],
+"real": "24 1"
+},
+{
+"id": "s2-2-7",
+"sem": 2,
+"n": "2.7",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Арифметический сдвиг сохраняет знак: −8 / 2 = <b>−4</b>. По конспекту поведение implementation-defined, но все популярные компиляторы (и стандарт с C++20) делают арифметический сдвиг.",
+"code": "#include <iostream>\nint main() {\n    short a = -8;\n    std::cout << (a >> 1) << '\\n';\n}",
+"ans": [
+"-4"
+],
+"real": "-4"
+},
+{
+"id": "s2-2-8",
+"sem": 2,
+"n": "2.8",
+"ch": "02",
+"type": "out",
+"q": "Что выведет программа (на 64-битном Linux/macOS)?",
+"why": "<code>int</code> — 4, <code>long</code> — 8 на 64-битных Linux/macOS (но 4 на Windows), <code>long long</code> — 8. Засчитываются оба варианта.",
+"code": "#include <iostream>\nint main() {\n    std::cout << sizeof(0) << \" \" << sizeof(0L) << \" \" << sizeof(0LL) << '\\n';\n}",
+"ans": [
+"4 8 8",
+"4 4 8"
+],
+"real": "4 8 8"
+},
+{
+"id": "s2-2-9",
+"sem": 2,
+"n": "2.9",
+"ch": "02",
+"type": "out",
+"q": "Что выведет программа? Подумай о типах результатов.",
+"why": "Значения нули: <b>0 0</b>. Интереснее типы: <code>0u + 0</code> — unsigned int, <code>0ul + 0ll</code> — unsigned long long или long long в зависимости от платформы.",
+"code": "#include <iostream>\nint main() {\n    std::cout << (0u + 0) << \" \" << (0ul + 0ll) << '\\n';\n}",
+"ans": [
+"0 0"
+],
+"real": "0 0"
+},
+{
+"id": "s2-2-10",
+"sem": 2,
+"n": "2.10",
+"ch": "06",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "17 знаков после запятой показывают ошибку представления: 0.1 и 0.2 неточны в двоичной системе.",
+"code": "#include <iostream>\nint main() {\n    double a = 0.1, b = 0.2;\n    std::cout.setf(std::ios::fixed);\n    std::cout.precision(17);\n    std::cout << (a + b) << '\\n';\n}",
+"ans": [
+"0.30000000000000004"
+],
+"real": "0.30000000000000004"
+},
+{
+"id": "s2-2-11",
+"sem": 2,
+"n": "2.11",
+"ch": "06",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "<code>x = +inf</code>: больше нуля и равен себе. <code>y = NaN</code>, а NaN <b>не равен ничему, даже себе</b>: <code>y == y</code> — false. На этом основан классический тест на NaN: <code>x != x</code>.",
+"code": "#include <iostream>\nint main() {\n    double x = 1.0/0.0;\n    double y = 0.0/0.0;\n    std::cout << (x > 0) << \" \" << (x == x) << \" \" << (y == y) << '\\n';\n}",
+"ans": [
+"1 1 0"
+],
+"real": "1 1 0"
+},
+{
+"id": "s2-2-12",
+"sem": 2,
+"n": "2.12",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "12 = 1100, 5 = 0101: AND = 0100 = 4, OR = 1101 = 13, XOR = 1001 = 9.",
+"code": "#include <iostream>\nint main() {\n    unsigned int a = 12, b = 5;\n    std::cout << (a & b) << \" \" << (a | b) << \" \" << (a ^ b) << '\\n';\n}",
+"ans": [
+"4 13 9"
+],
+"real": "4 13 9"
+},
+{
+"id": "s2-2-13",
+"sem": 2,
+"n": "2.13",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа (unsigned int — 32 бита)?",
+"why": "~7 = 2³² − 1 − 7 = <b>4294967288</b>. Результат зависит от размера <code>unsigned int</code>.",
+"code": "#include <iostream>\nint main() {\n    unsigned int x = 7;\n    std::cout << ~x << '\\n';\n}",
+"ans": [
+"4294967288"
+],
+"real": "4294967288"
+},
+{
+"id": "s2-2-14",
+"sem": 2,
+"n": "2.14",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Сдвиг влево на 2 — умножение на 4: <b>12</b>.",
+"code": "#include <iostream>\nint main() {\n    unsigned int x = 3;\n    std::cout << (x << 2) << '\\n';\n}",
+"ans": [
+"12"
+],
+"real": "12"
+},
+{
+"id": "s2-2-15",
+"sem": 2,
+"n": "2.15",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Сдвиг вправо на 3 — деление на 8: <b>4</b>.",
+"code": "#include <iostream>\nint main() {\n    unsigned int x = 32;\n    std::cout << (x >> 3) << '\\n';\n}",
+"ans": [
+"4"
+],
+"real": "4"
+},
+{
+"id": "s2-2-16",
+"sem": 2,
+"n": "2.16",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "10 + 2 = <b>12</b>.",
+"code": "#include <iostream>\nint main() {\n    unsigned int x = 5;\n    std::cout << ((x << 1) + (x >> 1)) << '\\n';\n}",
+"ans": [
+"12"
+],
+"real": "12"
+},
+{
+"id": "s2-2-17",
+"sem": 2,
+"n": "2.17",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "a ⊕ a = 0 для любого a.",
+"code": "#include <iostream>\nint main() {\n    unsigned int a = 42;\n    std::cout << (a ^ a) << '\\n';\n}",
+"ans": [
+"0"
+],
+"real": "0"
+},
+{
+"id": "s2-2-18",
+"sem": 2,
+"n": "2.18",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Обмен через XOR: значения поменялись местами — <b>12 7</b>.",
+"code": "#include <iostream>\nint main() {\n    unsigned int a = 7, b = 12;\n    a = a ^ b;\n    b = a ^ b;\n    a = a ^ b;\n    std::cout << a << \" \" << b << '\\n';\n}",
+"ans": [
+"12 7"
+],
+"real": "12 7"
+},
+{
+"id": "s2-2-19",
+"sem": 2,
+"n": "2.19",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "13 = 1101, бит 3 установлен → результат <b>8</b> (не 1! AND возвращает маску, а не bool).",
+"code": "#include <iostream>\nint main() {\n    unsigned int mask = 1 << 3; // 8\n    unsigned int x = 13;\n    std::cout << (x & mask) << '\\n';\n}",
+"ans": [
+"8"
+],
+"real": "8"
+},
+{
+"id": "s2-2-20",
+"sem": 2,
+"n": "2.20",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "5 = 101, бит 2 уже установлен → <b>5</b>.",
+"code": "#include <iostream>\nint main() {\n    unsigned int x = 5;\n    unsigned int mask = 1 << 2;\n    std::cout << (x | mask) << '\\n';\n}",
+"ans": [
+"5"
+],
+"real": "5"
+},
+{
+"id": "s2-2-21",
+"sem": 2,
+"n": "2.21",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Сбрасываем бит 2 у 1101 → 1001 = <b>9</b>.",
+"code": "#include <iostream>\nint main() {\n    unsigned int x = 13;\n    unsigned int mask = ~(1 << 2);\n    std::cout << (x & mask) << '\\n';\n}",
+"ans": [
+"9"
+],
+"real": "9"
+},
+{
+"id": "s2-2-22",
+"sem": 2,
+"n": "2.22",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Переключаем бит 3 у 1001 → 0001 = <b>1</b>.",
+"code": "#include <iostream>\nint main() {\n    unsigned int x = 9;\n    unsigned int mask = 1 << 3;\n    std::cout << (x ^ mask) << '\\n';\n}",
+"ans": [
+"1"
+],
+"real": "1"
+},
+{
+"id": "s2-2-23",
+"sem": 2,
+"n": "2.23",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Младший бит — признак нечётности: 57 нечётное → <b>1</b>.",
+"code": "#include <iostream>\nint main() {\n    unsigned int x = 57;\n    std::cout << (x & 1) << '\\n';\n}",
+"ans": [
+"1"
+],
+"real": "1"
+},
+{
+"id": "s2-2-24",
+"sem": 2,
+"n": "2.24",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "11 · 2 = <b>22</b>.",
+"code": "#include <iostream>\nint main() {\n    unsigned int x = 11;\n    std::cout << (x << 1) << '\\n';\n}",
+"ans": [
+"22"
+],
+"real": "22"
+},
+{
+"id": "s2-2-25",
+"sem": 2,
+"n": "2.25",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "25 / 2 = <b>12</b> (целочисленно).",
+"code": "#include <iostream>\nint main() {\n    unsigned int x = 25;\n    std::cout << (x >> 1) << '\\n';\n}",
+"ans": [
+"12"
+],
+"real": "12"
+},
+{
+"id": "s2-2-26",
+"sem": 2,
+"n": "2.26",
+"ch": "05",
+"type": "out",
+"q": "Что выведет программа? И что вычисляет эта формула?",
+"why": "<code>x &amp; y</code> = 0110 &amp; 1010 = 0010 = 2, сдвиг даёт 4; <code>x | y</code> = 1110 = 14; итого <b>18</b>. Скобки вокруг сдвига обязательны, а <code>+</code> связывается раньше, чем <code>&lt;&lt;</code> потока. Что вычисляет формула: известно, что <code>x + y == (x | y) + (x &amp; y)</code>, поэтому здесь получается <code>x + y + (x &amp; y)</code> = 16 + 2.",
+"code": "#include <iostream>\nint main() {\n    unsigned int x = 6;\n    unsigned int y = 10;\n    std::cout << ((x & y) << 1) + (x | y) << '\\n';\n}",
+"ans": [
+"18"
+],
+"real": "18"
+},
+{
+"id": "s3-3-1",
+"sem": 3,
+"n": "3.1",
+"ch": "08",
+"type": "single",
+"q": "Какой тип у результата выражения <code>true ? 1 : 2.5</code>?",
+"why": "Тип условной операции — общий тип операндов, он не зависит от условия: <code>int</code> и <code>double</code> → <code>double</code>. Значение будет 1.0.",
+"opts": [
+"int",
+"double",
+"float",
+"bool"
+],
+"ans": 1
+},
+{
+"id": "s3-3-2",
+"sem": 3,
+"n": "3.2",
+"ch": "08",
+"type": "single",
+"q": "Какое утверждение про <code>if</code> с инициализацией верно?",
+"why": "Переменная из init видна в условии и во всех ветках, включая <code>else</code>, и умирает после оператора. init может быть и выражением, константой быть не обязана.",
+"opts": [
+"Переменная из init живёт до конца программы",
+"Переменная обязана быть константой",
+"init может содержать только объявление переменной",
+"Область видимости переменной ограничена оператором if (включая else)"
+],
+"ans": 3
+},
+{
+"id": "s3-3-3",
+"sem": 3,
+"n": "3.3",
+"ch": "08",
+"type": "single",
+"q": "Какие типы могут использоваться в условии <code>switch</code>?",
+"why": "Целые и перечислимые типы (а <code>char</code> — тоже целый). Вещественные и строки — нельзя.",
+"opts": [
+"Только int",
+"Любые целые типы, char, enum",
+"Любые целые типы",
+"int, float, double"
+],
+"ans": 1
+},
+{
+"id": "s3-3-4",
+"sem": 3,
+"n": "3.4",
+"ch": "09",
+"type": "single",
+"q": "Какой порядок выполнения частей цикла <code>for</code>?",
+"why": "init один раз, затем по кругу: проверка условия → тело → expression → проверка…",
+"opts": [
+"init → condition → statement → expression",
+"init → statement → condition → expression",
+"condition → init → statement → expression",
+"statement → init → condition → expression"
+],
+"ans": 0
+},
+{
+"id": "s3-3-5",
+"sem": 3,
+"n": "3.5",
+"ch": "09",
+"type": "single",
+"q": "Как ведёт себя <code>continue</code> в цикле <code>for</code>?",
+"why": "В <code>for</code> после <code>continue</code> выполняется expression (например, <code>++i</code>), потом условие. В <code>while</code> — сразу условие.",
+"opts": [
+"Прерывает цикл полностью",
+"Переходит к проверке условия, пропуская expression",
+"Переходит к expression, затем к проверке условия",
+"Возвращает управление в начало функции"
+],
+"ans": 2
+},
+{
+"id": "s3-3-6",
+"sem": 3,
+"n": "3.6",
+"ch": "08",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Любое ненулевое значение (в том числе отрицательное) — true.",
+"code": "#include <iostream>\n\nint main() {\n    int x = -3;\n    if (x) std::cout << \"nonzero\\n\";\n    if (!x) std::cout << \"zero\\n\";\n}",
+"ans": [
+"nonzero"
+],
+"real": "nonzero"
+},
+{
+"id": "s3-3-7",
+"sem": 3,
+"n": "3.7",
+"ch": "08",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "init создаёт <code>y = 5</code>, условие 5 &gt; 3 истинно → <b>5</b>.",
+"code": "#include <iostream>\n\nint main() {\n    int x = 0;\n    if (int y = x + 5; y > 3) {\n        std::cout << y << '\\n';\n    }\n}",
+"ans": [
+"5"
+],
+"real": "5"
+},
+{
+"id": "s3-3-8",
+"sem": 3,
+"n": "3.8",
+"ch": "08",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "<code>else</code> относится к ближайшему <code>if (false)</code> → <b>B</b>.",
+"code": "#include <iostream>\n\nint main() {\n    if (true)\n    if (false) std::cout << \"A\\n\";\n    else std::cout << \"B\\n\";\n}",
+"ans": [
+"B"
+],
+"real": "B"
+},
+{
+"id": "s3-3-9",
+"sem": 3,
+"n": "3.9",
+"ch": "08",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Максимум из трёх: 2 &lt; 5, 5 ≥ 3 → <b>5</b>.",
+"code": "#include <iostream>\n\nint main() {\n    int a = 2, b = 5, c = 3;\n    if (a >= b) {\n        if (a >= c) std::cout << a << '\\n';\n        else std::cout << c << '\\n';\n    } else if (b >= c) {\n        std::cout << b << '\\n';\n    } else {\n        std::cout << c << '\\n';\n    }\n}",
+"ans": [
+"5"
+],
+"real": "5"
+},
+{
+"id": "s3-3-10",
+"sem": 3,
+"n": "3.10",
+"ch": "08",
+"type": "single",
+"q": "Что выведет программа? Есть ли здесь ошибка?",
+"why": "<code>;</code> — пустой оператор, законное тело <code>if</code>. Программа ничего не делает. Компилятор может предупредить: обычно это опечатка.",
+"opts": [
+"Ничего не выведет, код корректен (if с пустым оператором)",
+"Ошибка компиляции из-за ;",
+"UB",
+"Выведет 0"
+],
+"code": "#include <iostream>\n\nint main() {\n    int x = 0;\n    if (x);\n}",
+"ans": 0
+},
+{
+"id": "s3-3-11",
+"sem": 3,
+"n": "3.11",
+"ch": "08",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "<code>t = 5</code>, условие <code>t != 5</code> ложно — <b>ничего</b> не выводится (оставь поле пустым).",
+"code": "#include <iostream>\n\nint main() {\n    int x = 1, y = 2, z = 3;\n    if (const int t = y + z; t != 5)\n        std::cout << t << '\\n';\n}",
+"ans": [
+""
+],
+"real": ""
+},
+{
+"id": "s3-3-12",
+"sem": 3,
+"n": "3.12",
+"ch": "08",
+"type": "text",
+"q": "Что выведет программа при вводе 5, 0 и −3 (три запуска)? Запиши три ответа через пробел.",
+"why": "Классическая цепочка <code>else if</code>.",
+"stdin": "5",
+"code": "#include <iostream>\n\nint main() {\n    int x;\n    std::cin >> x;\n    if (x > 0) std::cout << \"positive\\n\";\n    else if (x == 0) std::cout << \"zero\\n\";\n    else std::cout << \"negative\\n\";\n}",
+"ans": [
+"positive zero negative"
+]
+},
+{
+"id": "s3-3-13",
+"sem": 3,
+"n": "3.13",
+"ch": "08",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Ловушка: <code>=</code> вместо <code>==</code>! <code>x = y</code> присваивает 0 и возвращает 0 → false → <b>Not equal</b>. Компилятор предупреждает о присваивании в условии.",
+"code": "#include <iostream>\n\nint main() {\n    int x = 5, y = 0;\n    if (x = y) std::cout << \"Equal\\n\";\n    else std::cout << \"Not equal\\n\";\n}",
+"ans": [
+"Not equal"
+],
+"real": "Not equal"
+},
+{
+"id": "s3-3-14",
+"sem": 3,
+"n": "3.14",
+"ch": "08",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Модуль разности: 7 − 4 = <b>3</b>.",
+"code": "#include <iostream>\n\nint main() {\n    int a = 4, b = 7;\n    std::cout << (a > b ? a - b : b - a) << '\\n';\n}",
+"ans": [
+"3"
+],
+"real": "3"
+},
+{
+"id": "s3-3-15",
+"sem": 3,
+"n": "3.15",
+"ch": "08",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "<code>x++ &gt; 0</code>: сравнивается старое 0 → false, x = 1. Затем <code>++x &gt; 1</code>: x = 2, 2 &gt; 1 → <b>B</b>.",
+"code": "#include <iostream>\n\nint main() {\n    int x = 0;\n    if (x++ > 0) std::cout << \"A\\n\";\n    else if (++x > 1) std::cout << \"B\\n\";\n    else std::cout << \"C\\n\";\n}",
+"ans": [
+"B"
+],
+"real": "B"
+},
+{
+"id": "s3-3-16",
+"sem": 3,
+"n": "3.16",
+"ch": "09",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Бесконечный <code>for</code> с выходом по <code>break</code>: печатает 0, 1, 2 подряд → <b>012</b>.",
+"code": "#include <iostream>\n\nint main() {\n    int i = 0;\n    for (;;) {\n        if (i == 3) break;\n        std::cout << i++;\n    }\n    std::cout << '\\n';\n}",
+"ans": [
+"012"
+],
+"real": "012"
+},
+{
+"id": "s3-3-17",
+"sem": 3,
+"n": "3.17",
+"ch": "09",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "<code>j = 1</code> всегда пропускается через <code>continue</code>. При <code>i = 2</code> уже на первой итерации (j = 0) срабатывает <code>break</code>, но он выходит <b>только из внутреннего</b> цикла, поэтому строка для <code>i = 3</code> снова печатается.",
+"code": "#include <iostream>\n\nint main() {\n    for (int i = 0; i < 4; ++i) {\n        for (int j = 0; j < 4; ++j) {\n            if (j == 1) continue;\n            if (i == 2) break;\n            std::cout << i << j << ' ';\n        }\n    }\n    std::cout << '\\n';\n}",
+"ans": [
+"00 02 03 10 12 13 30 32 33"
+],
+"real": "00 02 03 10 12 13 30 32 33"
+},
+{
+"id": "s4-4-1",
+"sem": 4,
+"n": "4.1",
+"ch": "10",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "Максимум из 3 и 5.",
+"code": "int ownMax(int x, int y) { return x > y ? x : y; }\nint main() {\n    std::cout << ownMax(3, 5) << '\\n';\n}",
+"wrap": "inc",
+"ans": [
+"5"
+],
+"real": "5"
+},
+{
+"id": "s4-4-2",
+"sem": 4,
+"n": "4.2",
+"ch": "10",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "Без аргумента берётся значение по умолчанию 10.",
+"code": "int f(int x = 10) { return x; }\nint main() {\n    std::cout << f() << ' ' << f(20) << '\\n';\n}",
+"wrap": "inc",
+"ans": [
+"10 20"
+],
+"real": "10 20"
+},
+{
+"id": "s4-4-3",
+"sem": 4,
+"n": "4.3",
+"ch": "10",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "Значения по умолчанию из объявления: 5 + 10 = <b>15</b>. В определении их повторять не нужно (и нельзя).",
+"code": "int g(int x = 5, int y = 10);\nint g(int x, int y) { return x + y; }\nint main() {\n    std::cout << g() << '\\n';\n}",
+"wrap": "inc",
+"ans": [
+"15"
+],
+"real": "15"
+},
+{
+"id": "s4-4-4",
+"sem": 4,
+"n": "4.4",
+"ch": "10",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "<code>return;</code> досрочно выходит из void-функции: <b>ничего</b> не печатается.",
+"code": "void print(int x) {\n    if (x < 0) return;\n    std::cout << x;\n}\nint main() {\n    print(-3);\n}",
+"wrap": "inc",
+"ans": [
+""
+],
+"real": ""
+},
+{
+"id": "s4-4-5",
+"sem": 4,
+"n": "4.5",
+"ch": "10",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "Статическая переменная живёт между вызовами: 1, потом 2 → <b>12</b>. (С C++17 операнды <code>&lt;&lt;</code> вычисляются слева направо.)",
+"code": "int counter() {\n    static int x = 1;\n    return x++;\n}\nint main() {\n    std::cout << counter() << counter();\n}",
+"wrap": "inc",
+"ans": [
+"12"
+],
+"real": "12"
+},
+{
+"id": "s4-4-6",
+"sem": 4,
+"n": "4.6",
+"ch": "10",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "2, затем 2 + 3 = 5 → <b>25</b>.",
+"code": "int acc(int v) {\n    static int t = 0;\n    t += v;\n    return t;\n}\nint main() {\n    std::cout << acc(2) << acc(3);\n}",
+"wrap": "inc",
+"ans": [
+"25"
+],
+"real": "25"
+},
+{
+"id": "s4-4-7",
+"sem": 4,
+"n": "4.7",
+"ch": "10",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "<b>123</b>: счётчик сохраняется между вызовами.",
+"code": "void side() {\n    static int calls = 0;\n    std::cout << ++calls;\n}\nint main() {\n    side(); side(); side();\n}",
+"wrap": "inc",
+"ans": [
+"123"
+],
+"real": "123"
+},
+{
+"id": "s4-4-8",
+"sem": 4,
+"n": "4.8",
+"ch": "10",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "Перегрузка по числу параметров: −10 и 7 → <b>-107</b>.",
+"code": "int minus(int x) { return -x; }\nint minus(int x, int y) { return x - y; }\nint main() {\n    std::cout << minus(10) << minus(10, 3);\n}",
+"wrap": "inc",
+"ans": [
+"-107"
+],
+"real": "-107"
+},
+{
+"id": "s4-4-9",
+"sem": 4,
+"n": "4.9",
+"ch": "10",
+"type": "out",
+"q": "Что выведет код?",
+"why": "Хвостовая рекурсия с накопителем: (123, 0) → (12, 3) → (1, 32) → (0, 321) → <b>321</b>.",
+"code": "int reverse(int n, int rev = 0) {\n    if (n == 0) return rev;\n    return reverse(n / 10, rev * 10 + n % 10);\n}\nint main() {\n    std::cout << reverse(123);\n    return 0;\n}",
+"wrap": "inc",
+"ans": [
+"321"
+],
+"real": "321"
+},
+{
+"id": "s4-4-10",
+"sem": 4,
+"n": "4.10",
+"ch": "10",
+"type": "out",
+"q": "Что выведет код?",
+"why": "3 + 2 + 1 = <b>6</b>.",
+"code": "int digitSum(int n) {\n    if (n == 0) return 0;\n    return (n % 10) + digitSum(n / 10);\n}\nint main() {\n    std::cout << digitSum(123);\n    return 0;\n}",
+"wrap": "inc",
+"ans": [
+"6"
+],
+"real": "6"
+},
+{
+"id": "s4-4-11",
+"sem": 4,
+"n": "4.11",
+"ch": "10",
+"type": "multi",
+"q": "Какие утверждения о функциях в C++ верны?",
+"why": "<code>return</code> необязателен в <code>void</code>-функциях и в <code>main</code>. В остальных его отсутствие при использовании результата — UB, но не ошибка компиляции.",
+"opts": [
+"Функция должна быть объявлена или определена до первого вызова",
+"Объявление функции (declaration) не содержит тела",
+"Определение функции (definition) содержит тело",
+"Все функции обязаны иметь return",
+"Функция без возвращаемого значения имеет тип void"
+],
+"ans": [
+0,
+1,
+2,
+4
+]
+},
+{
+"id": "s4-4-12",
+"sem": 4,
+"n": "4.12",
+"ch": "10",
+"type": "multi",
+"q": "Какие утверждения об аргументах по умолчанию верны?",
+"why": "По умолчанию — только последние параметры (B). Указываются один раз, обычно в первом объявлении, повторять в определении нельзя (D). Выражение по умолчанию вычисляется заново при каждом вызове (E). Вариант A неточен: если отдельного объявления нет, значения пишут в определении.",
+"opts": [
+"Аргументы по умолчанию указываются только в объявлении",
+"Аргументы по умолчанию идут справа налево, без пропусков",
+"Можно задать значение по умолчанию любому параметру независимо от позиции",
+"Нельзя указывать значения по умолчанию и в объявлении, и в определении одновременно",
+"Значения по умолчанию вычисляются при каждом вызове функции"
+],
+"ans": [
+1,
+3,
+4
+]
+},
+{
+"id": "s4-4-13",
+"sem": 4,
+"n": "4.13",
+"ch": "10",
+"type": "multi",
+"q": "Что происходит при передаче аргументов по значению?",
+"why": "Адрес передаётся по указателю (а для ссылок — фактически тоже), но не при передаче по значению.",
+"opts": [
+"Создаётся копия аргумента внутри функции",
+"Изменения параметра внутри функции не влияют на исходную переменную",
+"Передаётся адрес переменной"
+],
+"ans": [
+0,
+1
+]
+},
+{
+"id": "s5-5-1",
+"sem": 5,
+"n": "5.1",
+"ch": "13",
+"type": "single",
+"q": "Как объявить указатель на <code>int</code>?",
+"why": "Звёздочка после типа: <code>int* ptr;</code>. <code>int&amp;</code> — ссылка, а не указатель.",
+"opts": [
+"<code>int ptr;</code>",
+"<code>pointer int ptr;</code>",
+"<code>*int ptr;</code>",
+"<code>int &amp;ptr;</code>",
+"<code>int* ptr;</code>"
+],
+"ans": 4
+},
+{
+"id": "s5-5-2",
+"sem": 5,
+"n": "5.2",
+"ch": "13",
+"type": "single",
+"q": "Как получить адрес переменной?",
+"why": "<code>&amp;x</code> — адрес <code>x</code>. <code>*p</code> — наоборот, разыменование.",
+"opts": [
+"Операция <code>*</code>",
+"Операция <code>&amp;</code>",
+"Операция <code>-&gt;</code>",
+"Операция <code>@</code>"
+],
+"ans": 1
+},
+{
+"id": "s5-5-3",
+"sem": 5,
+"n": "5.3",
+"ch": "13",
+"type": "single",
+"q": "Что такое разыменование указателя?",
+"why": "<code>*p</code> возвращает lvalue объекта, на который указывает <code>p</code>.",
+"opts": [
+"Получение адреса переменной",
+"Получение значения (объекта) по адресу, хранящемуся в указателе",
+"Изменение адреса указателя",
+"Создание копии указателя"
+],
+"ans": 1
+},
+{
+"id": "s5-5-4",
+"sem": 5,
+"n": "5.4",
+"ch": "13",
+"type": "single",
+"q": "Может ли указатель менять адрес, который он хранит?",
+"why": "Обычный указатель — переменная, её можно переприсвоить. Нельзя только у константного указателя <code>int* const</code>.",
+"opts": [
+"Нет, только значение",
+"Да, может указывать на другую переменную",
+"Только если это константный указатель",
+"Только через специальные функции"
+],
+"ans": 1
+},
+{
+"id": "s5-5-5",
+"sem": 5,
+"n": "5.5",
+"ch": "13",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "<code>a = 4 · 2 = 8</code>, затем <code>b = 8 − 4 = 4</code> → <b>8 4</b>.",
+"code": "int a = 8, b = 4;\nint *p = &a;\nint *q = &b;\n*p = *q * 2;\n*q = *p - *q;\nstd::cout << a << ' ' << b;",
+"wrap": "main",
+"ans": [
+"8 4"
+],
+"real": "8 4"
+},
+{
+"id": "s5-5-6",
+"sem": 5,
+"n": "5.6",
+"ch": "13",
+"type": "single",
+"q": "В чём разница между <code>const int*</code> и <code>int* const</code>?",
+"why": "Читай справа налево: <code>int* const p</code> — «p — константный указатель на int».",
+"opts": [
+"Разницы нет",
+"<code>const int*</code> — указатель на константу, <code>int* const</code> — константный указатель",
+"<code>const int*</code> — константный указатель, <code>int* const</code> — указатель на константу",
+"Оба выражения неверны"
+],
+"ans": 1
+},
+{
+"id": "s5-5-7",
+"sem": 5,
+"n": "5.7",
+"ch": "13",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "a = 10 + 5 = 15, b не менялась.",
+"code": "int a = 5, b = 10;\nint *p1 = &a, *p2 = &b;\n*p1 = *p2 + *p1;\nstd::cout << a << ' ' << b;",
+"wrap": "main",
+"ans": [
+"15 10"
+],
+"real": "15 10"
+},
+{
+"id": "s5-5-8",
+"sem": 5,
+"n": "5.8",
+"ch": "13",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "<code>**pptr</code> и <code>*ptr</code> — это всё <code>x</code>: 100 / 100 = <b>1</b>.",
+"code": "int x = 100;\nint *ptr = &x;\nint **pptr = &ptr;\n**pptr = **pptr / *ptr;\nstd::cout << x;",
+"wrap": "main",
+"ans": [
+"1"
+],
+"real": "1"
+},
+{
+"id": "s5-5-9",
+"sem": 5,
+"n": "5.9",
+"ch": "13",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "Все три выражения — <code>x</code>: 10 + 10 + 10 = <b>30</b>.",
+"code": "int x = 10;\nint *p = &x;\nint **pp = &p;\nint ***ppp = &pp;\n***ppp = ***ppp + **pp + *p;\nstd::cout << x;",
+"wrap": "main",
+"ans": [
+"30"
+],
+"real": "30"
+},
+{
+"id": "s5-5-10",
+"sem": 5,
+"n": "5.10",
+"ch": "13",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "<code>p = q</code> перенаправляет указатель на <code>y</code>; запись идёт в <code>y</code> → <b>20 40</b>.",
+"code": "int x = 20, y = 30;\nint *p = &x;\nint *q = &y;\np = q;\n*p = 40;\nstd::cout << x << ' ' << y;",
+"wrap": "main",
+"ans": [
+"20 40"
+],
+"real": "20 40"
+},
+{
+"id": "s5-5-11",
+"sem": 5,
+"n": "5.11",
+"ch": "13",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "Оба указателя на <code>value</code>: (7 + 1) · 2 = <b>16</b>. Скобки в <code>(*ptr1)++</code> важны: без них инкрементировался бы указатель.",
+"code": "int value = 7;\nint *ptr1 = &value;\nint *ptr2 = ptr1;\n(*ptr1)++;\n(*ptr2) *= 2;\nstd::cout << value;",
+"wrap": "main",
+"ans": [
+"16"
+],
+"real": "16"
+},
+{
+"id": "s5-5-12",
+"sem": 5,
+"n": "5.12",
+"ch": "13",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "Возвращается адрес локальной переменной, которая умерла при выходе из функции. <code>x</code> — висячий указатель, разыменование — <b>UB</b>. Может «случайно» напечатать 999, может мусор, может упасть.",
+"ub": true,
+"code": "int* generate() {\n    int tmp = 999;\n    return &tmp;\n}\n\nint main() {\n    int *x = generate();\n    std::cout << *x;\n}",
+"wrap": "inc",
+"ans": [
+"UB"
+],
+"real": "999"
+},
+{
+"id": "s5-5-13",
+"sem": 5,
+"n": "5.13",
+"ch": "13",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "Через указатель на указатель функция заставила <code>ptr</code> смотреть на свою локальную <code>local</code>, которая умерла. Дальше — висячий указатель и <b>UB</b>. (В оригинале на семинаре <code>cout</code> без <code>std::</code> — это ещё и CE без <code>using namespace std;</code>.)",
+"ub": true,
+"code": "void swapPtr(int **p) {\n    int local = 777;\n    *p = &local;\n}\n\nint main() {\n    int val = 111;\n    int *ptr = &val;\n    swapPtr(&ptr);\n    std::cout << *ptr;\n}",
+"wrap": "inc",
+"ans": [
+"UB"
+],
+"real": "777"
+},
+{
+"id": "s5-5-14",
+"sem": 5,
+"n": "5.14",
+"ch": "13",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "Через указатель функция меняет оригинал: <b>45</b>.",
+"code": "void triple(int *p) {\n    *p = *p * 3;\n}\n\nint main() {\n    int n = 15;\n    triple(&n);\n    std::cout << n;\n}",
+"wrap": "inc",
+"ans": [
+"45"
+],
+"real": "45"
+},
+{
+"id": "s7-7-1",
+"sem": 7,
+"n": "7.1",
+"ch": "16",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "<code>ptr</code> на arr[3]. <code>ptr[-2]</code> = arr[1] = 2.5, <code>*(ptr-1)</code> = arr[2] = 3.5, разность указателей — 3 элемента.",
+"code": "float arr[] = {1.5, 2.5, 3.5, 4.5};\nfloat *ptr = arr + 3;\nstd::cout << ptr[-2] << \" \";\nstd::cout << *(ptr - 1) << \" \";\nstd::cout << (ptr - arr);",
+"wrap": "main",
+"ans": [
+"2.5 3.5 3"
+],
+"real": "2.5 3.5 3"
+},
+{
+"id": "s7-7-2",
+"sem": 7,
+"n": "7.2",
+"ch": "16",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "Ловушка приоритетов: <code>*r + 2</code> — это (30) + 2 = 32, а не arr[2]. (И не забыть бы <code>delete[] arr</code>.)",
+"code": "int size = 3;\nint *arr = new int[size]{30, 40, 50};\nint *r = arr;\nstd::cout << *r << \" \";\nstd::cout << *(r + 1) << \" \";\nstd::cout << *r + 2;",
+"wrap": "main",
+"ans": [
+"30 40 32"
+],
+"real": "30 40 32"
+},
+{
+"id": "s7-7-3",
+"sem": 7,
+"n": "7.3",
+"ch": "16",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "<code>p</code> — массив указателей. <code>q</code> указывает на p[1] (→ y = 2), <code>q + 1</code> — на p[2] (→ z = 3), <code>*p[2]</code> = 3.",
+"code": "int x = 1, y = 2, z = 3;\nint *p[] = {&x, &y, &z};\nint **q = p + 1;\nstd::cout << **q << \" \" << *(*(q + 1)) << \" \" << *p[2];",
+"wrap": "main",
+"ans": [
+"2 3 3"
+],
+"real": "2 3 3"
+},
+{
+"id": "s7-7-4",
+"sem": 7,
+"n": "7.4",
+"ch": "16",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "Локальный массив умирает при выходе из функции. Возвращённый указатель висячий → <b>UB</b>.",
+"ub": true,
+"code": "int* createArray() {\n    int arr[3] = {1, 2, 3};\n    return arr;\n}\n\nint main() {\n    int *result = createArray();\n    std::cout << result[0];\n}",
+"wrap": "inc",
+"ans": [
+"UB"
+],
+"real": "1"
+},
+{
+"id": "s7-7-5",
+"sem": 7,
+"n": "7.5",
+"ch": "16",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "arr = {5, 6, 7, 8, 9} заполнен до <code>delete ptr</code>, так что arr[3] = <b>8</b>. Всё корректно: <code>delete</code> для одиночного, <code>delete[]</code> для массива.",
+"code": "int *ptr = new int(5);\nint *arr = new int[5];\nfor (int i = 0; i < 5; i++) {\n    arr[i] = *ptr + i;\n}\ndelete ptr;\nstd::cout << arr[3];\ndelete[] arr;",
+"wrap": "main",
+"ans": [
+"8"
+],
+"real": "8"
+},
+{
+"id": "s7-7-6",
+"sem": 7,
+"n": "7.6",
+"ch": "16",
+"type": "out",
+"q": "Что выведет фрагмент?",
+"why": "<code>*p++</code>: прочитать a[0] = 5, затем сдвинуть p. <code>*++p</code>: сдвинуть на a[2], прочитать 15. <code>++*p</code>: увеличить a[2] до 16.",
+"code": "int a[] = {5, 10, 15};\nint *p = a;\nstd::cout << *p++ << \" \";\nstd::cout << *++p << \" \";\nstd::cout << ++*p;",
+"wrap": "main",
+"ans": [
+"5 15 16"
+],
+"real": "5 15 16"
+},
+{
+"id": "s7-7-7",
+"sem": 7,
+"n": "7.7",
+"ch": "16",
+"type": "out",
+"q": "Что будет выведено?",
+"why": "Массив передаётся как указатель на первый элемент, функция меняет оригинал → <b>100 200</b>.",
+"code": "#include <iostream>\n\nvoid modify(int arr[]) {\n    arr[0] = 100;\n    arr[1] = 200;\n}\n\nint main() {\n    int nums[] = {1, 2, 3};\n    modify(nums);\n    std::cout << nums[0] << \" \" << nums[1];\n    return 0;\n}",
+"ans": [
+"100 200"
+],
+"real": "100 200"
+},
+{
+"id": "s7-7-8",
+"sem": 7,
+"n": "7.8",
+"ch": "16",
+"type": "out",
+"q": "Что будет выведено?",
+"why": "30 + 20 = <b>50</b>.",
+"code": "#include <iostream>\n\nint process(int* arr) {\n    return *(arr + 2) + arr[1];\n}\n\nint main() {\n    int data[] = {10, 20, 30, 40};\n    int result = process(data);\n    std::cout << result;\n    return 0;\n}",
+"ans": [
+"50"
+],
+"real": "50"
+},
+{
+"id": "s7-7-9",
+"sem": 7,
+"n": "7.9",
+"ch": "16",
+"type": "out",
+"q": "Что будет выведено?",
+"why": "Указатель на элемент массива из <code>main</code> — массив жив, всё законно: <b>99</b>.",
+"code": "#include <iostream>\n\nint* getElement(int arr[], int index) {\n    return &arr[index];\n}\n\nint main() {\n    int values[] = {15, 25, 35, 45};\n    int* ptr = getElement(values, 2);\n    *ptr = 99;\n    std::cout << values[2];\n    return 0;\n}",
+"ans": [
+"99"
+],
+"real": "99"
+},
+{
+"id": "s7-7-10",
+"sem": 7,
+"n": "7.10",
+"ch": "16",
+"type": "out",
+"q": "Что будет выведено?",
+"why": "5 / 2 = 2 → указатель на numbers[2], туда записали 100.",
+"code": "#include <iostream>\n\nint* findMid(int arr[], int size) {\n    return arr + size/2;\n}\n\nint main() {\n    int numbers[] = {5, 10, 15, 20, 25};\n    int* mid = findMid(numbers, 5);\n    *mid = 100;\n    std::cout << numbers[2];\n    return 0;\n}",
+"ans": [
+"100"
+],
+"real": "100"
+},
+{
+"id": "s9-9-1",
+"sem": 9,
+"n": "9.1",
+"ch": "19",
+"type": "out",
+"q": "Что будет в результате исполнения фрагмента?",
+"why": "<code>**arr</code> — указатель на arr[0][0][0], +1 → 20. <code>*(*(arr + 1) + 2)</code> — arr[1][2], его первый элемент 110. <code>arr[0][2][1]</code> = 60.",
+"code": "int arr[2][3][2] = {\n    {{10, 20}, {30, 40}, {50, 60}},\n    {{70, 80}, {90, 100}, {110, 120}}\n};\nstd::cout << *(**arr + 1) << \" \";\nstd::cout << *(*(*(arr + 1) + 2)) << \" \";\nstd::cout << arr[0][2][1];",
+"wrap": "main",
+"ans": [
+"20 110 60"
+],
+"real": "20 110 60"
+},
+{
+"id": "s9-9-2",
+"sem": 9,
+"n": "9.2",
+"ch": "19",
+"type": "out",
+"q": "Что будет в результате исполнения фрагмента?",
+"why": "Плоская раскладка 9 8 | 7 6 | 5 4. Позиция 4 → 5; a[2][0] = 5; a[1][1] = 6.",
+"code": "int a[3][2] = {9, 8, 7, 6, 5, 4};\nint *p = &a[0][0];\nstd::cout << *(p + 4) << \" \";\nstd::cout << a[2][0] << \" \";\nstd::cout << (*(a + 1))[1];",
+"wrap": "main",
+"ans": [
+"5 5 6"
+],
+"real": "5 5 6"
+},
+{
+"id": "s9-9-3",
+"sem": 9,
+"n": "9.3",
+"ch": "19",
+"type": "out",
+"q": "Что будет в результате исполнения фрагмента?",
+"why": "matrix[1][1] = 5; позиция 4 в плоской записи 1 2 3 4 5 6 → 5; matrix[1][2] = 6.",
+"code": "int matrix[2][3] = {{1, 2, 3}, {4, 5, 6}};\nstd::cout << *(matrix[1] + 1) << \" \";\nstd::cout << *(*matrix + 4) << \" \";\nstd::cout << (*(matrix + 1))[2];",
+"wrap": "main",
+"ans": [
+"5 5 6"
+],
+"real": "5 5 6"
+},
+{
+"id": "s9-9-4",
+"sem": 9,
+"n": "9.4",
+"ch": "19",
+"type": "out",
+"q": "Что будет в результате исполнения фрагмента?",
+"why": "arr[1][2] = 1·3 + 2 + 1 = <b>6</b>. (Память здесь так и не освобождена — на семинаре за это снимают баллы.)",
+"code": "int **arr = new int*[2];\nfor (int i = 0; i < 2; i++) {\n    arr[i] = new int[3];\n    for (int j = 0; j < 3; j++) {\n        arr[i][j] = i * 3 + j + 1;\n    }\n}\nstd::cout << *(*(arr + 1) + 2);",
+"wrap": "main",
+"ans": [
+"6"
+],
+"real": "6"
+},
+{
+"id": "s11-11-1",
+"sem": 11,
+"n": "11.1",
+"ch": "20",
+"type": "out",
+"q": "Что выведет код?",
+"why": "Поля локальной структуры без инициализации — мусор, чтение — <b>UB</b>. <code>Point p{};</code> обнулил бы их.",
+"ub": true,
+"code": "struct Point {\n    int x;\n    int y;\n};\n\nint main() {\n    Point p;\n    std::cout << p.x << ' ' << p.y;\n}",
+"wrap": "inc",
+"ans": [
+"UB"
+],
+"real": "-283912616 32766"
+},
+{
+"id": "s11-11-2",
+"sem": 11,
+"n": "11.2",
+"ch": "24",
+"type": "out",
+"q": "Что выведет код?",
+"why": "Конструктор при создании, деструктор в конце <code>main</code>.",
+"code": "struct Point {\n    Point() { std::cout << \"Point() \"; }\n    ~Point() { std::cout << \"~Point() \"; }\n};\n\nint main() {\n    Point p;\n}",
+"wrap": "inc",
+"ans": [
+"Point() ~Point()"
+],
+"real": "Point() ~Point()"
+},
+{
+"id": "s11-11-3",
+"sem": 11,
+"n": "11.3",
+"ch": "23",
+"type": "out",
+"q": "Что выведет код?",
+"why": "Все три синтаксиса вызывают один и тот же конструктор. В списке инициализации <code>x(x)</code>: поле <code>x</code> инициализируется параметром <code>x</code> — так можно.",
+"code": "struct Point {\n    int x;\n    int y;\n\n    Point(int x, int y) : x(x), y(y) {\n        std::cout << \"Point(\" << x << \",\" << y << \") \";\n    }\n};\n\nint main() {\n    Point p1(1, 2);\n    Point p2 = {3, 4};\n    Point p3{5, 6};\n}",
+"wrap": "inc",
+"ans": [
+"Point(1,2) Point(3,4) Point(5,6)"
+],
+"real": "Point(1,2) Point(3,4) Point(5,6)"
+},
+{
+"id": "s11-11-4",
+"sem": 11,
+"n": "11.4",
+"ch": "25",
+"type": "out",
+"q": "Что выведет код?",
+"why": "Сгенерированный конструктор копирования скопировал указатель: <code>a.data == b.data</code>. Конструктор Array() отработает один раз, а оба деструктора сделают <code>delete[]</code> одной памяти — <b>double free, UB</b> (обычно падение после «Array() ~Array() »). Лечится правилом трёх.",
+"ub": true,
+"code": "struct Array {\n    int* data;\n    size_t size;\n\n    Array(size_t n) : size(n) {\n        data = new int[n];\n        std::cout << \"Array() \";\n    }\n\n    ~Array() {\n        delete[] data;\n        std::cout << \"~Array() \";\n    }\n};\n\nint main() {\n    Array a(5);\n    Array b = a; // проблема!\n}",
+"wrap": "inc",
+"ans": [
+"UB"
+],
+"real": ""
+},
+{
+"id": "s11-11-5",
+"sem": 11,
+"n": "11.5",
+"ch": "23",
+"type": "out",
+"q": "Что выведет код?",
+"why": "p1 и p4 — конструктор по умолчанию (1), p2 и p5 — конструктор преобразования (2; он не <code>explicit</code>, поэтому <code>= 10</code> работает), p3 — (3).",
+"code": "struct Point {\n    int x;\n    int y;\n\n    Point() : x(0), y(0) { std::cout << \"1 \"; }\n    Point(int x) : x(x), y(0) { std::cout << \"2 \"; }\n    Point(int x, int y) : x(x), y(y) { std::cout << \"3 \"; }\n};\n\nint main() {\n    Point p1;\n    Point p2(5);\n    Point p3(1, 2);\n    Point p4{};\n    Point p5 = 10;\n}",
+"wrap": "inc",
+"ans": [
+"1 2 3 1 2"
+],
+"real": "1 2 3 1 2"
+},
+{
+"id": "s6-6-к1",
+"sem": 6,
+"n": "6.к1",
+"ch": "14",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "<code>rx = y</code> — присваивание значения (x = 1), а не перепривязка. Дальнейшие изменения <code>y</code> на <code>x</code> не влияют → <b>1 1 5</b>.",
+"code": "#include <iostream>\nint main() {\n    int x = 0;\n    int y = 1;\n    int& rx = x;\n    rx = y;\n    y = 5;\n    std::cout << x << ' ' << rx << ' ' << y;\n}",
+"ans": [
+"1 1 5"
+],
+"real": "1 1 5"
+},
+{
+"id": "s6-6-к2",
+"sem": 6,
+"n": "6.к2",
+"ch": "15",
+"type": "out",
+"q": "Что выведет программа?",
+"why": "Внутри блока два владельца, объект общий (101). После блока счётчик снова 1.",
+"code": "#include <iostream>\n#include <memory>\nint main() {\n    auto p1 = std::make_shared<int>(100);\n    {\n        auto p2 = p1;\n        *p2 += 1;\n        std::cout << p1.use_count() << ' ';\n    }\n    std::cout << *p1 << ' ' << p1.use_count();\n}",
+"ans": [
+"2 101 1"
+],
+"real": "2 101 1"
+}
+]

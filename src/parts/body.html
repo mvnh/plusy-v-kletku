@@ -1,0 +1,25 @@
+<header class="top">
+  <button type="button" class="tbtn menu-btn" id="menu" aria-label="Оглавление"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+  <a class="logo" href="#home">Плюсы <b>в клетку</b><small>интерактивный «Великий конспект»</small></a>
+  <span class="sp"></span>
+  <span class="xp" title="Общий прогресс: главы + задачи"><span class="bar"><i id="xpbar" style="width:0"></i></span><span id="xptext">0%</span></span>
+  <span class="vsmall lbl" id="sync" title="Прогресс хранится в этом браузере (localStorage)">прогресс в браузере</span>
+  <a class="tbtn" href="#sandbox"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg><span class="lbl">Песочница</span></a>
+  <button type="button" class="tbtn primary" id="tutor-btn"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.2 6.6L21 11l-6.8 2.4L12 20l-2.2-6.6L3 11l6.8-2.4z"/></svg><span class="lbl">Тьютор</span></button>
+</header>
+<div class="shell">
+  <nav class="side" id="side" aria-label="Оглавление"></nav>
+  <main id="main"><div class="col empty"><span class="spin"></span> загружаю конспект…</div></main>
+</div>
+<aside class="drawer" id="drawer" aria-label="ИИ-тьютор">
+  <div class="dh"><b>✦ ИИ-тьютор</b><span class="sp" style="flex:1"></span><button type="button" class="btn ghost sm" id="tstop" hidden>стоп</button><button type="button" class="btn ghost sm" id="tclear" title="Начать новый разговор">новый чат</button><button type="button" class="btn ghost sm" id="tclose" aria-label="Закрыть">✕</button></div>
+  <div class="ctx" id="tctx">Контекст: общий вопрос</div>
+  <div class="msgs" id="msgs"><div class="msg a"><p>Привет! Я вижу, какую главу или задачу ты сейчас открыл. Спрашивай что угодно по C++: «почему тут UB», «объясни указатели как пятилетке», «проверь мой код». Могу сам запускать код, чтобы проверить себя.</p></div></div>
+  <div class="chips" id="chips">
+    <button type="button">Объясни проще</button>
+    <button type="button">Пример из реальной жизни</button>
+    <button type="button">Задай мне 3 вопроса по теме</button>
+    <button type="button">Где тут подвох на экзамене?</button>
+  </div>
+  <form class="compose" id="tform"><textarea id="tin" placeholder="Спроси про C++…" aria-label="Сообщение тьютору"></textarea><button class="btn" type="submit">→</button></form>
+</aside>

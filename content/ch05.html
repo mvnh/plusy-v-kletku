@@ -1,0 +1,128 @@
+<section>
+<h2><span class="sn">5.1</span> Поразрядные битовые операции</h2>
+<p>Вспомним операции, которые работают напрямую с битами чисел. Каждый бит результата считается независимо от соседей.</p>
+<div class="tw"><table>
+<tr><th>Операция</th><th>Название</th><th>Бит результата = 1, когда…</th></tr>
+<tr><td><code>&amp;</code></td><td>AND (И)</td><td>оба бита 1</td></tr>
+<tr><td><code>|</code></td><td>OR (ИЛИ)</td><td>хотя бы один бит 1</td></tr>
+<tr><td><code>^</code></td><td>XOR (исключающее ИЛИ)</td><td>биты разные</td></tr>
+<tr><td><code>~</code></td><td>NOT (НЕ)</td><td>бит был 0 (инверсия)</td></tr>
+<tr><td><code>&lt;&lt;</code></td><td>сдвиг влево</td><td>биты едут влево, справа приходят нули</td></tr>
+<tr><td><code>&gt;&gt;</code></td><td>сдвиг вправо</td><td>биты едут вправо</td></tr>
+</table></div>
+<aside class="c c-imp"><p>Все комбинируются с присваиванием: <code>&amp;=</code>, <code>|=</code>, <code>^=</code>, <code>&lt;&lt;=</code>, <code>&gt;&gt;=</code>.</p></aside>
+<p>Примеры из конспекта на <code>short</code> (16 бит). Выбери операцию в виджете, там уже стоят те же числа:</p>
+<div class="viz-slot" data-viz="bits" data-cfg='{"type":"int16","value":123,"b":321,"ops":true}'></div>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+int main() {
+    short int a = 123; // 00000000 01111011
+    short int b = 321; // 00000001 01000001
+    short int c1 = a & b; // 00000000 01000001 = 65
+    short int c2 = a | b; // 00000001 01111011 = 379
+    short int c3 = a ^ b; // 00000001 00111010 = 314
+    std::cout << c1 << ' ' << c2 << ' ' << c3 << '\n';
+    return 0;
+}
+</script>
+<h3>Свойства XOR</h3>
+<ul>
+<li>a ⊕ a = 0</li>
+<li>a ⊕ 0 = a</li>
+<li>a ⊕ b = b ⊕ a (коммутативность)</li>
+<li>(a ⊕ b) ⊕ c = a ⊕ (b ⊕ c) (ассоциативность)</li>
+</ul>
+<p>Из них следует магия: если XOR-нуть все числа массива, где каждое встречается дважды, а одно — один раз, останется ровно одиночка. Пары взаимно уничтожатся. Это задача «Single Number» с LeetCode, она ждёт тебя в тренажёре.</p>
+<script type="text/x-cpp" data-run data-stdin="7&#10;4 1 2 1 2 9 4">
+#include <iostream>
+int main() {
+    int n;
+    std::cin >> n;
+    int acc = 0;
+    for (int i = 0; i < n; ++i) {
+        int x;
+        std::cin >> x;
+        acc ^= x; // пары взаимно уничтожаются: a ^ a = 0
+    }
+    std::cout << acc << '\n'; // 9
+    return 0;
+}
+</script>
+<h3>Сдвиги</h3>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+int main() {
+    short int a = 123;     // 00000000 01111011
+    short int b = a << 2;  // 00000001 11101100 = 492
+    short int c = a >> 3;  // 00000000 00001111 = 15
+    std::cout << b << ' ' << c << '\n';
+    return 0;
+}
+</script>
+<p>Для беззнаковых чисел сдвиг влево на <i>n</i> разрядов — это умножение на 2<sup>n</sup>, а сдвиг вправо — целочисленное деление на 2<sup>n</sup>.</p>
+<aside class="c c-imp"><p>Для знаковых чисел сдвиг вправо <b>арифметический</b>: знак сохраняется, слева «приезжают» копии старшего бита.</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+int main() {
+    short int a = -87;    // 11111111 10101001
+    short int b = a << 2; // 11111110 10100100 = -348
+    short int c = a >> 3; // 11111111 11110101 = -11
+    std::cout << b << ' ' << c << '\n';
+    return 0;
+}
+</script></aside>
+<aside class="c c-ub"><p>По конспекту: поведение сдвига вправо отрицательных чисел зависит от компилятора, но большинство делают арифметический сдвиг. Для полноты: начиная с C++20 стандарт закрепил дополнительный код, и <code>&gt;&gt;</code> для отрицательных теперь гарантированно арифметический. <b>UB остаётся</b>, если сдвигать на отрицательное число разрядов или на ширину типа и больше: <code>1 &lt;&lt; 32</code> для 32-битного <code>int</code> — UB.</p></aside>
+<aside class="c c-tip"><p>Заметь: <code>-87 &gt;&gt; 3</code> = −11, а <code>-87 / 8</code> = −10. Арифметический сдвиг округляет вниз (к −∞), а деление — к нулю. Для отрицательных это разные операции!</p></aside>
+<div class="qz" data-type="out" data-ans="-11 -10">
+<div class="q">Что выведет <code>std::cout &lt;&lt; (-87 &gt;&gt; 3) &lt;&lt; ' ' &lt;&lt; (-87 / 8);</code>?</div>
+<div class="why">Сдвиг: −10,875 округляется к −∞ → −11. Деление: к нулю → −10.</div>
+</div>
+</section>
+
+<section>
+<h2><span class="sn">5.2</span> Битовые хитрости</h2>
+<p>Конспект советует отдельно изучить битовые трюки. Вот база, которую реально спрашивают и используют:</p>
+<div class="tw"><table>
+<tr><th>Что</th><th>Как</th><th>Почему работает</th></tr>
+<tr><td>Проверить k-й бит</td><td><code>(x &gt;&gt; k) &amp; 1</code></td><td>сдвинули нужный бит в младший разряд</td></tr>
+<tr><td>Установить k-й бит</td><td><code>x |= (1 &lt;&lt; k)</code></td><td>OR с маской, где единица только в k</td></tr>
+<tr><td>Сбросить k-й бит</td><td><code>x &amp;= ~(1 &lt;&lt; k)</code></td><td>AND с маской, где ноль только в k</td></tr>
+<tr><td>Переключить k-й бит</td><td><code>x ^= (1 &lt;&lt; k)</code></td><td>XOR с 1 переворачивает бит</td></tr>
+<tr><td>Чётность</td><td><code>x &amp; 1</code></td><td>младший бит = остаток от деления на 2</td></tr>
+<tr><td>Степень двойки?</td><td><code>x &gt; 0 &amp;&amp; (x &amp; (x - 1)) == 0</code></td><td><code>x - 1</code> гасит единственную единицу</td></tr>
+<tr><td>Младшая единица</td><td><code>x &amp; -x</code></td><td><code>-x = ~x + 1</code></td></tr>
+<tr><td>Обмен без temp</td><td><code>a ^= b; b ^= a; a ^= b;</code></td><td>свойства XOR (ломается при <code>&amp;a == &amp;b</code>!)</td></tr>
+</table></div>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+int main() {
+    unsigned x = 0b10110000;
+    std::cout << ((x >> 4) & 1) << '\n';         // 1
+    x |= (1u << 0);                              // 10110001
+    x &= ~(1u << 7);                             // 00110001
+    std::cout << x << '\n';                      // 49
+    std::cout << (x & -x) << '\n';               // 1 — младшая единица
+    for (unsigned v : {1u, 6u, 64u, 96u})
+        std::cout << v << (v && !(v & (v - 1)) ? " степень двойки\n" : " нет\n");
+    return 0;
+}
+</script>
+<aside class="c c-prod">
+<p>Где это живёт в реальном коде:</p>
+<ul>
+<li><b>Права доступа в Linux</b>: <code>chmod 755</code> — это три тройки битов rwx. Внутри ядра проверка «можно ли писать» — буквально <code>mode &amp; S_IWUSR</code>.</li>
+<li><b>Шахматные движки</b> (Stockfish и др.) хранят доску как 64-битные «битборды»: один <code>uint64_t</code> = все белые пешки. Ходы считаются сдвигами и масками за наносекунды.</li>
+<li><b>Флаги</b> в API: <code>std::ios::in | std::ios::binary</code> из главы о файлах — это OR битовых масок.</li>
+<li><b>Хэш-таблицы</b> с размером 2<sup>k</sup> берут индекс как <code>hash &amp; (size - 1)</code> вместо медленного <code>%</code>.</li>
+</ul>
+</aside>
+<div class="qz" data-type="single" data-ans="3">
+<div class="q">Как сбросить (обнулить) 3-й бит переменной <code>flags</code>, не трогая остальные?</div>
+<ol><li><code>flags ^= 3;</code></li><li><code>flags &amp;= (1 &lt;&lt; 3);</code></li><li><code>flags |= ~(1 &lt;&lt; 3);</code></li><li><code>flags &amp;= ~(1 &lt;&lt; 3);</code></li></ol>
+<div class="why">Маска <code>~(1 &lt;&lt; 3)</code> — все единицы, кроме 3-го бита. AND с ней обнуляет только его. Вариант B, наоборот, обнулит всё <i>кроме</i> 3-го бита.</div>
+</div>
+<div class="qz" data-type="out" data-ans="1">
+<div class="q">Что выведет <code>std::cout &lt;&lt; ((48 &amp; 47) == 32);</code>?</div>
+<div class="why">48 = <code>110000</code>, 47 = <code>101111</code>, AND = <code>100000</code> = 32 → true → <b>1</b>. 48 не степень двойки: после гашения младшей единицы осталась ещё одна.</div>
+</div>
+</section>

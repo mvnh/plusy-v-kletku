@@ -1,0 +1,198 @@
+<section>
+<h2><span class="sn">14.1</span> Ссылка — второе имя объекта</h2>
+<aside class="c c-def"><p><b>Ссылка</b> — альтернативное имя объекта в памяти. Её можно воспринимать как указатель, который не нужно разыменовывать.</p></aside>
+<script type="text/x-cpp" data-run="wrap">
+int x = 0;
+int& rx = x; // rx — альтернативное имя x
+x = 1;
+std::cout << x << ' ' << rx << '\n'; // 1 1
+rx = 2;
+std::cout << x << ' ' << rx << '\n'; // 2 2
+std::cout << (&x == &rx) << '\n';    // 1: это буквально одна ячейка
+</script>
+<p>Если указатель — бумажка с номером дома, то ссылка — <b>второе имя самого дома</b>. «Дом Петровых» и «дом 15» — это один и тот же дом.</p>
+<p>Ссылка связывается не с переменной как таковой, а с <b>областью памяти</b>:</p>
+<script type="text/x-cpp">
+int x;
+int array[10];
+int* p = ...;
+
+int& rx = x;        // ссылка на x
+int& ra = array[0]; // ссылка на первый элемент массива
+int& rp = *p;       // ссылка на память, на которую указывает p
+</script>
+<aside class="c c-imp"><p>Ссылка (<code>T&amp;</code>) <b>не является объектом</b> и не имеет собственного размера: стандарт не требует, чтобы она занимала память. <code>sizeof</code>, применённый к ссылке, возвращает размер типа, на который она ссылается: <code>sizeof(int&amp;) == sizeof(int)</code>. В отличие от указателя, ссылка не хранит адрес явно, она лишь даёт другое имя существующему объекту.</p>
+<p>Но если ссылку нельзя «соптимизировать» (например, она передаётся в функцию), то во время выполнения она обычно реализована как указатель и занимает столько же: <code>sizeof(void*)</code>, обычно 8 байт на 64-битной системе.</p></aside>
+<h3>Правила работы со ссылками</h3>
+<ul>
+<li><b>Связываются раз и навсегда.</b> Нельзя поменять область памяти, на которую ссылается ссылка.
+<script type="text/x-cpp">
+int& rx = x; // rx <=> x (rx — псевдоним x)
+rx = y;      // в x записывается значение y; rx НЕ перепривязывается к y
+</script></li>
+<li>Отсюда: ссылки по определению константны. <code>int&amp; const rx = x;</code> — бессмысленно (ссылка и так неизменяема).</li>
+<li>Связываются только с областью памяти (lvalue): <code>int&amp; x = 0;</code> — CE.</li>
+<li>Нельзя создать ссылку на <code>void</code>.</li>
+<li>Нельзя создать ссылку на ссылку.</li>
+<li>Ссылка <b>обязана</b> быть инициализирована при создании: <code>int&amp; rx;</code> — CE.</li>
+<li>Нельзя создавать массивы ссылок: <code>int&amp; array[2]{x, y};</code> — CE.</li>
+</ul>
+<script type="text/x-cpp">
+int x = 0;
+int y = 1;
+
+int& rx = x;  // rx привязана к x
+int& ry;      // ОШИБКА: ссылку нужно инициализировать при объявлении
+rx = y;       // в x записывается значение y; rx по-прежнему ссылается на x
+ry = y;       // ОШИБКА (ry не была инициализирована)
+
+int& rz = rx; // rz привязана к x (через rx) — это НЕ ссылка на ссылку
+int&& rt = rx; // ОШИБКА: && — это rvalue-ссылка, к lvalue rx её не привязать
+
+// ссылки привязываются только к lvalue
+int& z = 0;     // ОШИБКА: 0 — rvalue
+int& t = x + y; // ОШИБКА: x + y — rvalue
+</script>
+<div class="qz" data-type="out" data-ans="7 7 3">
+<div class="q">Что выведет программа?</div>
+<script type="text/x-cpp">
+#include <iostream>
+int main() {
+    int a = 3, b = 7;
+    int& r = a;
+    r = b;     // перепривязка? или присваивание?
+    b = 3;
+    std::cout << a << ' ' << r << ' ' << b << '\n';
+}
+</script>
+<div class="why"><code>r = b</code> — это присваивание <code>a = 7</code>, ссылка не перепривязывается. Потом меняется только <code>b</code>. Итого <b>7 7 3</b>.</div>
+</div>
+
+<h3>Константные ссылки</h3>
+<p>Ссылка на константу даёт право только на чтение:</p>
+<script type="text/x-cpp">
+int x = 0;
+const int cx = 1;
+
+const int& rx = x;   // OK
+const int& rcx = cx; // OK
+int& rx2 = cx;       // CE: нельзя «снять» const через ссылку
+</script>
+<aside class="c c-imp" data-l="Исключение!"><p><b>Константные ссылки продлевают время жизни временных объектов</b>, то есть могут связываться с prvalue:</p>
+<script type="text/x-cpp">
+int& x = 0;        // CE
+const int& cx = 0; // OK
+</script>
+<p>Константная ссылка даёт временному значению «убежище» в памяти, поэтому у него можно взять адрес и ссылаться на него:</p>
+<script type="text/x-cpp">
+const int* p = &cx;  // OK
+const int& rcx = cx; // OK
+</script></aside>
+</section>
+
+<section>
+<h2><span class="sn">14.2</span> Передача указателей и ссылок в функцию</h2>
+<p>Часто нужно обменять значения двух переменных (например, при сортировке). Напишем функцию:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+void swap(int x, int y) {
+    int tmp = x;
+    x = y;
+    y = tmp;
+}
+int main() {
+    int x = 0;
+    int y = 1;
+    swap(x, y);
+    std::cout << x << ' ' << y << '\n'; // 0 1 — ничего не поменялось!
+    return 0;
+}
+</script>
+<p>Функция обменивает лишь <b>локальные копии</b>: при передаче по значению аргументы копируются. Исходные переменные не меняются.</p>
+<h3>Передача указателей</h3>
+<p>Чтобы из функции добраться до локальных переменных другой функции, можно передать их адреса:</p>
+<div class="trace" data-title="swap через указатели">
+<script type="text/x-cpp">
+void swap(int* px, int* py) {
+    int tmp = *px;
+    *px = *py;
+    *py = tmp;
+}
+
+int main() {
+    int x = 0;
+    int y = 1;
+    swap(&x, &y);
+}
+</script>
+<script type="application/json">{"steps":[
+{"l":9,"n":"В <code>main</code> две переменные.","st":[{"f":"main()","v":[["x","int","0",{"a":"0x7f20"}],["y","int","1",{"a":"0x7f1c"}]]}]},
+{"l":1,"n":"Вызов <code>swap(&amp;x, &amp;y)</code>: в кадр <code>swap</code> скопировались <b>адреса</b>. Сами указатели — копии, но смотрят на оригиналы.","st":[{"f":"main()","v":[["x","int","0",{"a":"0x7f20"}],["y","int","1",{"a":"0x7f1c"}]]},{"f":"swap(int*, int*)","v":[["px","int*","0x7f20",{"p":"x"}],["py","int*","0x7f1c",{"p":"y"}]]}]},
+{"l":2,"n":"<code>tmp = *px</code> → 0.","st":[{"f":"main()","v":[["x","int","0",{"a":"0x7f20"}],["y","int","1",{"a":"0x7f1c"}]]},{"f":"swap(int*, int*)","v":[["px","int*","0x7f20",{"p":"x"}],["py","int*","0x7f1c",{"p":"y"}],["tmp","int","0"]]}]},
+{"l":3,"n":"<code>*px = *py</code>: пишем в <code>x</code> из <code>main</code>!","st":[{"f":"main()","v":[["x","int","1",{"a":"0x7f20"}],["y","int","1",{"a":"0x7f1c"}]]},{"f":"swap(int*, int*)","v":[["px","int*","0x7f20",{"p":"x"}],["py","int*","0x7f1c",{"p":"y"}],["tmp","int","0"]]}]},
+{"l":4,"n":"<code>*py = tmp</code>.","st":[{"f":"main()","v":[["x","int","1",{"a":"0x7f20"}],["y","int","0",{"a":"0x7f1c"}]]},{"f":"swap(int*, int*)","v":[["px","int*","0x7f20",{"p":"x"}],["py","int*","0x7f1c",{"p":"y"}],["tmp","int","0"]]}]},
+{"l":11,"n":"Кадр <code>swap</code> исчез, а изменения остались: <code>x == 1</code>, <code>y == 0</code>.","st":[{"f":"main()","v":[["x","int","1",{"a":"0x7f20"}],["y","int","0",{"a":"0x7f1c"}]]}]}
+]}</script>
+</div>
+<aside class="c c-imp"><p>Хотя функция получает доступ к исходным переменным, <b>сам указатель передаётся по значению</b> — копируется. Значит, изменение самого указателя внутри функции (например, <code>px = nullptr</code>) не повлияет на указатель в вызывающем коде.</p></aside>
+<h3>Передача ссылок</h3>
+<p>Удобнее передавать параметры по ссылке:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+void swap(int& x, int& y) { // принимает ссылки на переменные
+    int tmp = x;
+    x = y;   // меняет значение, на которое ссылается x
+    y = tmp; // меняет значение, на которое ссылается y
+}
+
+int main() {
+    int x = 0;
+    int y = 1;
+    swap(x, y); // после вызова: x == 1, y == 0
+    std::cout << x << ' ' << y << '\n';
+    return 0;
+}
+</script>
+<aside class="c c-imp"><p>При передаче по ссылке <b>копирования не происходит</b>. Ссылка — не отдельный объект, а другое имя (alias) существующей переменной, поэтому все изменения внутри функции применяются напрямую к оригиналам.</p></aside>
+<h3>Передача по константной ссылке</h3>
+<p>Обычная ссылка позволяет функции изменить аргумент, а это не всегда нужно. Копировать тяжёлый объект тоже плохо. Решение — <b>константная ссылка</b>: без копии и без права менять.</p>
+<script type="text/x-cpp">
+int max(const int& x, const int& y) {
+    return x > y ? x : y;
+}
+</script>
+<aside class="c c-imp"><p>Копирование примитивных типов очень дешёвое, поэтому их лучше передавать <b>по значению</b>. Передача по ссылке имеет смысл для тяжёлых объектов (структур, классов, <code>std::string</code>).</p></aside>
+<div class="tw"><table>
+<tr><th>Как передать</th><th>Копия?</th><th>Можно изменить оригинал?</th><th>Когда</th></tr>
+<tr><td><code>void f(T x)</code></td><td>да</td><td>нет</td><td>маленькие типы (<code>int</code>, <code>double</code>, указатели)</td></tr>
+<tr><td><code>void f(T&amp; x)</code></td><td>нет</td><td>да</td><td>функция должна изменить аргумент («выходной» параметр)</td></tr>
+<tr><td><code>void f(const T&amp; x)</code></td><td>нет</td><td>нет</td><td>большие объекты только для чтения</td></tr>
+<tr><td><code>void f(T* x)</code></td><td>копия адреса</td><td>да, через <code>*x</code></td><td>когда аргумента может «не быть» (<code>nullptr</code>)</td></tr>
+</table></div>
+<aside class="c c-prod"><p>Сигнатура вроде <code>void process(const std::string&amp; payload)</code> — самая частая строчка в C++-коде любой компании. Забытый <code>&amp;</code> в горячей функции, куда приходят мегабайтные JSON-ы, означает копию мегабайта на каждый вызов. Такие баги находят профайлером, и они реально роняют производительность сервисов.</p></aside>
+<div class="qz" data-type="single" data-ans="2">
+<div class="q">Функция должна принять большую структуру <code>Order</code> (килобайты данных) и только прочитать её. Лучшая сигнатура?</div>
+<ol><li><code>void check(Order o)</code></li><li><code>void check(Order&amp; o)</code></li><li><code>void check(const Order&amp; o)</code></li><li><code>void check(Order* o)</code></li></ol>
+<div class="why">Без копии и с гарантией «не изменю». Вариант B тоже без копии, но позволяет случайно испортить данные и не принимает константные объекты и временные значения.</div>
+</div>
+<div class="qz" data-type="out" data-ans="5 0">
+<div class="q">Что выведет программа?</div>
+<script type="text/x-cpp">
+#include <iostream>
+void reset(int* p) {
+    p = nullptr;
+}
+void zero(int& r) {
+    r = 0;
+}
+int main() {
+    int a = 5, b = 5;
+    int* pa = &a;
+    reset(pa);
+    zero(b);
+    std::cout << *pa << ' ' << b << '\n';
+}
+</script>
+<div class="why"><code>reset</code> обнулил свою <b>копию</b> указателя, <code>pa</code> в <code>main</code> по-прежнему смотрит на <code>a</code> → 5. <code>zero</code> через ссылку изменил сам <code>b</code> → 0.</div>
+</div>
+</section>

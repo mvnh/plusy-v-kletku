@@ -1,0 +1,230 @@
+<section>
+<h2><span class="sn">20.1</span> Общее представление</h2>
+<aside class="c c-def"><p><b>Структура</b> — составной тип данных, который объединяет набор данных (возможно, разных типов) в одном объекте.</p></aside>
+<script type="text/x-cpp">
+struct Complex {   // комплексное число — два значения
+    double re;     // real part
+    double im;     // imaginary part
+};
+
+struct Array {     // указатель вместе с размером массива
+    int* buffer;
+    size_t size;
+};
+</script>
+<aside class="c c-tip"><p><code>struct Array</code> — ответ на боль из главы 16: массив в функции «забывает» свой размер. Положи указатель и размер в одну структуру — и они путешествуют вместе.</p></aside>
+</section>
+
+<section>
+<h2><span class="sn">20.2</span> Правила работы</h2>
+<script type="text/x-cpp">
+struct S {
+    int x;
+    float y;
+    const char* z;
+};
+</script>
+<ul>
+<li><b>Инициализация</b> — фигурными скобками, как у массивов. Неуказанные поля обнуляются:
+<script type="text/x-cpp">
+S a;                    // не инициализирована (мусор)
+S b = {1, 2, "string"};
+S c{1};                 // x == 1, y == 0.0, z == nullptr
+</script></li>
+<li><b>Доступ к полям</b> — операция <code>.</code>:
+<script type="text/x-cpp">
+S a;
+a.x = 11;
+std::cout << a.x; // 11
+</script></li>
+<li><b>Объявление переменных</b> сразу после определения структуры (перед <code>;</code>):
+<script type="text/x-cpp">
+struct S {
+    int x;
+    float y;
+} a = {1, 2.0}, *ptr, &ref = a, arr[10];
+</script></li>
+<li><b>Копирование и присваивание</b> — побитово копируются все поля. Так можно скопировать даже массив (копируются элементы, а не указатель: массив — часть объекта):
+<script type="text/x-cpp" data-run>
+#include <iostream>
+struct S {
+    float x;
+    int arr[3];
+};
+int main() {
+    S a = {1.0, {1, 2, 3}};
+    S b = a;      // все поля a копируются в b
+    b.arr[0] = 100;
+    a = b;        // присваивание тоже работает
+    std::cout << a.arr[0] << ' ' << a.arr[2] << '\n'; // 100 3
+}
+</script></li>
+<li><b>Доступ через указатель</b>:
+<script type="text/x-cpp" data-run>
+#include <iostream>
+struct S { int x; float y; };
+int main() {
+    auto ptr = new S;  // структура в динамической памяти
+    (*ptr).x = 0;      // разыменовать указатель, обратиться к полю
+    ptr->x = 5;        // то же самое через операцию ->
+    std::cout << ptr->x << '\n';
+    delete ptr;
+}
+</script>
+<code>ptr-&gt;x</code> — сокращение для <code>(*ptr).x</code>. Скобки там обязательны: <code>*ptr.x</code> означало бы <code>*(ptr.x)</code>.</li>
+<li><b>Массив структур</b> — агрегатная инициализация, недостающее заполняется нулями:
+<script type="text/x-cpp">
+struct S {
+    int x;
+    float y;
+};
+S array[3]{{1, 2}, 3}; // {{1, 2}, {3, 0.0}, {0, 0.0}}
+</script></li>
+<li><b>Значения по умолчанию</b> для полей:
+<script type="text/x-cpp">
+struct S {
+    int x = 1;
+    float y;
+};
+S a; // a.x == 1, a.y — не определено (мусор)
+</script></li>
+<li><b>Константные поля</b> должны получить значение при инициализации:
+<script type="text/x-cpp">
+struct S {
+    int x;
+    const float y;
+};
+S a;            // CE: y не инициализирована
+S b = {2};      // OK (b.y == 0)
+S c = {1, 2.0}; // OK (c.y == 2.0)
+</script></li>
+<li>Допускается не более одного определения структуры на единицу трансляции, и все определения в программе должны быть идентичны (ODR).</li>
+</ul>
+<div class="qz" data-type="out" data-ans="3 0 7">
+<div class="q">Что выведет программа?</div>
+<script type="text/x-cpp">
+#include <iostream>
+struct P { int a; int b = 7; int c; };
+int main() {
+    P arr[2]{{3}};
+    std::cout << arr[0].a << ' ' << arr[0].c << ' ' << arr[1].b << '\n';
+}
+</script>
+<div class="why"><code>arr[0]</code>: a = 3, b — значение по умолчанию 7, c — ноль. <code>arr[1]</code> не указан вовсе, поэтому value-инициализируется: a = 0, b = 7 (значение по умолчанию поля), c = 0.</div>
+</div>
+</section>
+
+<section>
+<h2><span class="sn">20.3</span> Статические поля</h2>
+<script type="text/x-cpp">
+struct S {
+    static int x;
+};
+</script>
+<p>Статическое поле принадлежит не конкретному объекту, а <b>всей структуре</b>: оно общее для всех объектов и хранится в статической памяти. Хороший пример — счётчик созданных объектов.</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+struct S {
+    static int x;
+};
+int S::x = 0; // определение (ровно одно на программу!)
+
+int main() {
+    S a;
+    S b;
+    a.x = 1;
+    std::cout << (b.x == 1) << '\n'; // true
+    b.x = 2;
+    std::cout << (a.x == 2) << '\n'; // true
+    S::x = 0;                        // через имя структуры
+    std::cout << S::x << '\n';       // 0
+}
+</script>
+<p>Статические поля — разновидность глобальных переменных, а для них действует ODR: ровно одно определение на программу. Поэтому <b>определять</b> статические поля внутри структуры нельзя. Исключение — константные целочисленные:</p>
+<script type="text/x-cpp">
+struct S {
+    static const int x = 1; // можно (константа)
+    static int y = 2;       // нельзя
+};
+</script>
+<p>Чтобы стало можно, нужно <code>inline</code> (C++17):</p>
+<script type="text/x-cpp">
+struct S {
+    inline static int x = 1; // можно
+};
+</script>
+</section>
+
+<section>
+<h2><span class="sn">20.4</span> inline</h2>
+<p>У <code>inline</code> два назначения:</p>
+<ol><li>подсказка компилятору для оптимизации — встраивание функции;</li><li>управление видимостью для соблюдения ODR.</li></ol>
+<p>В современном C++ <b>второе</b> важнее и гарантировано стандартом.</p>
+<p>Изначально <code>inline</code> просил компилятор подставить тело функции в место вызова, чтобы избежать накладных расходов: сохранения регистров, передачи аргументов через стек, перехода по адресу возврата.</p>
+<script type="text/x-cpp">
+// подсказка компилятору
+inline int max(int a, int b) {
+    return (a > b) ? a : b;
+}
+
+int main() {
+    int x = max(5, 10); // может стать: int x = (5 > 10) ? 5 : 10;
+    return 0;
+}
+</script>
+<p>Сейчас для GCC, Clang, MSVC это лишь <b>рекомендация</b>: компилятор может её проигнорировать (например, функция слишком большая), а при <code>-O2</code>/<code>-O3</code> он и сам встраивает что считает нужным, даже без <code>inline</code>.</p>
+<p>Практический смысл <code>inline</code> сегодня — <b>ODR</b>. Если определить функцию в заголовке <code>.h</code>, подключённом в несколько <code>.cpp</code>, линковщик выдаст <code>multiple definition</code>: код скомпилируется в каждый объектный файл. <code>inline</code> разрешает несколько <b>идентичных</b> определений в разных единицах трансляции, и линковщик оставит одну копию.</p>
+<script type="text/x-cpp">
+// utils.h
+#pragma once
+
+// без inline здесь будет ошибка линковки при подключении в 2+ .cpp
+inline void logMessage(const char* msg) {
+    // реализация
+}
+</script>
+</section>
+
+<section>
+<h2><span class="sn">20.5</span> Размер структуры. Выравнивание</h2>
+<p>Размер структуры — <b>не просто сумма</b> размеров полей:</p>
+<script type="text/x-cpp" data-run>
+#include <iostream>
+#include <cstdint>
+struct S {
+    char c;     // 1 байт
+    int32_t i;  // 4 байта
+    int16_t s;  // 2 байта
+    int64_t l;  // 8 байт
+};
+struct C {
+    int64_t l;  // 8 байт
+    int16_t s;  // 2 байта
+    char c;     // 1 байт
+    int32_t i;  // 4 байта
+};
+#pragma pack(push, 1)
+struct P {
+    char c; int32_t i; int16_t s; int64_t l;
+};
+#pragma pack(pop)
+
+int main() {
+    std::cout << sizeof(S) << ' ' << sizeof(C) << ' ' << sizeof(P) << '\n'; // 24 16 15
+}
+</script>
+<p>Те же поля в виджете: переставь их и посмотри, откуда берутся 24 и 16.</p>
+<div class="viz-slot" data-viz="align" data-cfg='{"fields":[["char","c"],["int","i"],["short","s"],["int64_t","l"]]}'></div>
+<aside class="c c-imp" data-l="Правила"><ul>
+<li>Размер структуры не меньше суммы размеров полей и не меньше 1.</li>
+<li>Поля лежат в памяти строго в порядке объявления.</li>
+<li>Каждый объект выравнивается по адресу, кратному его выравниванию (для базовых типов обычно равно размеру): <code>&amp;x</code> кратно <code>alignof(x)</code>.</li>
+<li>Самое компактное расположение — по убыванию размера. Но без необходимости такими микрооптимизациями не занимаются.</li>
+<li>При необходимости структура дополняется байтами в конце (padding), чтобы в массиве структур все элементы были выровнены.</li>
+</ul></aside>
+<p>Упаковка через <code>#pragma pack(push, 1)</code> даёт 15 байт, но так делать не стоит: теряется производительность, а на некоторых архитектурах невыровненный доступ вообще падает.</p>
+<div class="qz" data-type="text" data-ans="16" data-ph="sizeof">
+<div class="q">64-битный Linux. <code>struct T { int a; char b; double c; };</code> Чему равен <code>sizeof(T)</code>?</div>
+<div class="why"><code>a</code>: байты 0–3, <code>b</code>: байт 4, padding 5–7, <code>c</code>: 8–15. Итого <b>16</b>, выравнивание 8 — хвостового padding не нужно.</div>
+</div>
+</section>
