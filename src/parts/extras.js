@@ -181,7 +181,7 @@ const Tutor = {
   async get() { if (this.sample === undefined) { try { const i = await Runner.boot(); this.sample = i.ai ? LocalAI : null; } catch (e) { this.sample = null; } } return this.sample; },
   errText(e) { return ({ no_key: 'ИИ выключен: запусти сервер с переменной ANTHROPIC_API_KEY или OPENAI_API_KEY (см. README).', rate_limit_error: 'Слишком много запросов подряд, подожди минутку.', overloaded_error: 'Модель перегружена, попробуй через минуту.', authentication_error: 'API-ключ не подошёл — проверь ANTHROPIC_API_KEY / OPENAI_API_KEY.', cancelled: 'Остановлено.' })[e?.code] || 'ИИ сейчас недоступен' + (e?.message ? ': ' + e.message : '.'); },
   setCtx(fn) { this.ctxFn = fn; const c = $('#tctx'); if (c) c.textContent = fn ? 'Контекст: ' + (App.view === 'chapter' ? 'текущая глава' : App.view === 'task' ? 'текущая задача и твой код' : App.view === 'sandbox' ? 'код в песочнице' : App.view === 'exam' ? 'билет (без подсказок)' : 'страница') : 'Контекст: общий вопрос'; },
-  toggle(force) { const d = $('#drawer'); const open = force ?? !d.classList.contains('open'); d.classList.toggle('open', open); if (open) $('#tin').focus(); },
+  toggle(force) { const d = $('#drawer'); const open = force ?? !d.classList.contains('open'); d.classList.toggle('open', open); document.body.classList.toggle('tutor-open', open); if (open) $('#tin').focus(); },
   open(text) { this.toggle(true); if (text) { $('#tin').value = text; this.send(); } },
   tools() {
     return [{

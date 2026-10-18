@@ -100,7 +100,7 @@ h1,h2,h3{font-family:var(--f-display);font-weight:600;line-height:1.2;text-wrap:
 .side .dot.full{background:var(--green);border-color:var(--green)}
 .side .badge{margin-left:auto;font:600 11px var(--f-mono);background:var(--marker);color:#1c2230;border-radius:9px;padding:0 6px}
 
-main{min-width:0;padding-block:28px 120px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+main{min-width:0;container-type:inline-size;padding-block:28px 120px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 .col{max-width:780px;margin:0 auto}
 .wide{max-width:1180px;margin:0 auto}
 
@@ -114,11 +114,14 @@ main{min-width:0;padding-block:28px 120px;padding-left:max(16px,env(safe-area-in
 @media (max-width:560px){ .top .lbl{display:none} }
 /* десктоп: оглавление сворачивается кнопкой ☰; колонка сетки и само оглавление уезжают синхронно */
 @media (min-width:901px){
-  .shell{transition:grid-template-columns .25s}
+  .shell{transition:grid-template-columns .25s,margin-right .25s}
   .side{width:var(--side);transition:transform .25s,visibility 0s}
   .shell.nav-off{grid-template-columns:0 minmax(0,1fr)}
   .shell.nav-off .side{transform:translateX(-100%);visibility:hidden;transition:transform .25s,visibility 0s .25s}
 }
+/* тьютор сдвигает содержимое, а не перекрывает его, если остаётся хотя бы ~560px под текст; на меньших окнах выезжает поверх, как раньше */
+@media (min-width:1000px){body.tutor-open .shell.nav-off{margin-right:440px}}
+@media (min-width:1300px){body.tutor-open .shell{margin-right:440px}}
 @media (prefers-reduced-motion:reduce){.shell,.side{transition:none!important}}
 
 /* ---------- article ---------- */
@@ -184,7 +187,8 @@ article th{background:var(--paper-2);font-weight:600}
 .inline-run textarea{width:100%;min-height:64px;border:0;border-right:1px dashed var(--line);background:transparent;color:var(--ink);font:13px var(--f-mono);padding:8px 12px;resize:vertical}
 .out{margin:0;padding:8px 12px;font:13px/1.5 var(--f-mono);white-space:pre-wrap;word-break:break-word;min-height:64px;max-height:360px;overflow:auto}
 .out .err{color:var(--red)} .out .dim{color:var(--ink-3)} .out .ok{color:var(--green)}
-@media (max-width:560px){.inline-run .io{grid-template-columns:minmax(0,1fr)} .inline-run textarea{border-right:0;border-bottom:1px dashed var(--line)}}
+/* раскладки внутри страницы смотрят на ширину <main>, а не окна: так они подстраиваются под место, оставшееся от оглавления и тьютора */
+@container (max-width:528px){.inline-run .io{grid-template-columns:minmax(0,1fr)} .inline-run textarea{border-right:0;border-bottom:1px dashed var(--line)}}
 
 /* quiz */
 .quiz{margin:20px 0;padding:14px 16px;border-radius:var(--r);background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow)}
@@ -249,6 +253,7 @@ textarea.qin{min-height:70px;resize:vertical;font-family:var(--f-mono)}
 /* tracer */
 .tr{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:12px}
 @media (max-width:760px){.tr{grid-template-columns:minmax(0,1fr)}}
+@container (max-width:596px){.tr{grid-template-columns:minmax(0,1fr)}}
 .tr-code{font:13px/1.65 var(--f-mono);background:var(--code-bg);border:1px solid var(--line);border-radius:8px;padding:8px 0;overflow-x:auto;counter-reset:ln}
 .tr-code div{padding:0 12px 0 0;white-space:pre;display:flex}
 .tr-code div::before{counter-increment:ln;content:counter(ln);width:30px;flex:none;text-align:right;padding-right:10px;color:var(--ink-3)}
@@ -301,7 +306,8 @@ textarea.qin{min-height:70px;resize:vertical;font-family:var(--f-mono)}
 
 /* practice */
 .pgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start}
-@media (max-width:980px){.pgrid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:900px){.pgrid{grid-template-columns:minmax(0,1fr)}}
+@container (max-width:676px){.pgrid{grid-template-columns:minmax(0,1fr)}}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:16px;min-width:0}
 .panel h1{font-size:24px;margin:4px 0 10px}
 .tags{display:flex;gap:6px;flex-wrap:wrap}
@@ -1685,7 +1691,7 @@ const Tutor = {
   async get() { if (this.sample === undefined) { try { const i = await Runner.boot(); this.sample = i.ai ? LocalAI : null; } catch (e) { this.sample = null; } } return this.sample; },
   errText(e) { return ({ no_key: 'ИИ выключен: запусти сервер с переменной ANTHROPIC_API_KEY или OPENAI_API_KEY (см. README).', rate_limit_error: 'Слишком много запросов подряд, подожди минутку.', overloaded_error: 'Модель перегружена, попробуй через минуту.', authentication_error: 'API-ключ не подошёл — проверь ANTHROPIC_API_KEY / OPENAI_API_KEY.', cancelled: 'Остановлено.' })[e?.code] || 'ИИ сейчас недоступен' + (e?.message ? ': ' + e.message : '.'); },
   setCtx(fn) { this.ctxFn = fn; const c = $('#tctx'); if (c) c.textContent = fn ? 'Контекст: ' + (App.view === 'chapter' ? 'текущая глава' : App.view === 'task' ? 'текущая задача и твой код' : App.view === 'sandbox' ? 'код в песочнице' : App.view === 'exam' ? 'билет (без подсказок)' : 'страница') : 'Контекст: общий вопрос'; },
-  toggle(force) { const d = $('#drawer'); const open = force ?? !d.classList.contains('open'); d.classList.toggle('open', open); if (open) $('#tin').focus(); },
+  toggle(force) { const d = $('#drawer'); const open = force ?? !d.classList.contains('open'); d.classList.toggle('open', open); document.body.classList.toggle('tutor-open', open); if (open) $('#tin').focus(); },
   open(text) { this.toggle(true); if (text) { $('#tin').value = text; this.send(); } },
   tools() {
     return [{
