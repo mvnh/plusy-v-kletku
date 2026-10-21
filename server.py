@@ -11,12 +11,20 @@
 Только стандартная библиотека Python 3.8+. Нужен компилятор C++: g++ или clang++.
 Сервер слушает только 127.0.0.1: код, который ты запускаешь, выполняется на твоём
 компьютере с твоими правами — не открывай порт наружу.
+
+Для сервера (только в изолированном контейнере, см. deploy/README.md):
+         PVK_HOST=0.0.0.0              — на каком адресе слушать
+         PVK_ALLOWED_HOSTS=example.com — какие домены разрешены в заголовке Host (через запятую)
 """
 import argparse, hashlib, http.server, json, os, platform, shutil, signal, socketserver
 import subprocess, sys, tempfile, threading, time, urllib.error, urllib.parse, urllib.request, webbrowser
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 WORK = os.path.join(tempfile.gettempdir(), 'pvk-cpp')
+HOST = os.environ.get('PVK_HOST', '127.0.0.1')
+ALLOWED_HOSTS = {'127.0.0.1', 'localhost', '[::1]'} | {
+    h.strip().lower() for h in os.environ.get('PVK_ALLOWED_HOSTS', '').split(',') if h.strip()}
+SECRET_ENV = ('ANTHROPIC_API_KEY', 'OPENAI_API_KEY')  # не отдаём ключи запускаемым программам
 IS_WIN = os.name == 'nt'
 EXE = '.exe' if IS_WIN else ''
 OUT_CAP = 200_000
@@ -109,7 +117,8 @@ def run_binary(key, stdin, timeout):
     if not key.isalnum() or not os.path.exists(exe):
         return {'stdout': '', 'stderr': '', 'code': None, 'trap': 'бинарник не найден, перезапусти'}
     cwd = tempfile.mkdtemp(prefix='run-', dir=WORK)  # свежая папка: файлы программы не мешают друг другу
-    env = dict(os.environ, ASAN_OPTIONS='detect_leaks=1:abort_on_error=0', UBSAN_OPTIONS='print_stacktrace=1')
+    env = {k: v for k, v in os.environ.items() if k not in SECRET_ENV}
+    env.update(ASAN_OPTIONS=os.environ.get('ASAN_OPTIONS', 'detect_leaks=1:abort_on_error=0'), UBSAN_OPTIONS='print_stacktrace=1')
     if sys.platform == 'darwin':
         env['ASAN_OPTIONS'] = 'detect_leaks=0'  # LeakSanitizer на macOS (arm64) не поддерживается
     kw = {'start_new_session': True} if not IS_WIN else {'creationflags': subprocess.CREATE_NEW_PROCESS_GROUP}
@@ -342,8 +351,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         return t
 
     def _host_ok(self):
-        host = (self.headers.get('Host') or '').split(':')[0]
-        return host in ('127.0.0.1', 'localhost', '[::1]')
+        host = (self.headers.get('Host') or '').split(':')[0].lower()
+        return host in ALLOWED_HOSTS
 
     def do_GET(self):
         if not self._host_ok():
@@ -397,24 +406,33 @@ class Server(socketserver.ThreadingMixIn, http.server.HTTPServer):
     allow_reuse_address = True
 
 
+def cleanup_builds(max_age=86400, every=None):
+    """Удаляет сборки старше суток; с every=секунды повторяет это в фоне (долгоживущий сервер)."""
+    if os.path.isdir(WORK):
+        for n in os.listdir(WORK):
+            f = os.path.join(WORK, n)
+            try:
+                if time.time() - os.path.getmtime(f) > max_age:
+                    shutil.rmtree(f, ignore_errors=True) if os.path.isdir(f) else os.remove(f)
+            except OSError:
+                pass
+    if every:
+        t = threading.Timer(every, cleanup_builds, kwargs={'max_age': max_age, 'every': every})
+        t.daemon = True
+        t.start()
+
+
 def main():
     ap = argparse.ArgumentParser(description='Плюсы в клетку — локальный сервер')
     ap.add_argument('--port', type=int, default=int(os.environ.get('PORT', 8737)))
     ap.add_argument('--cxx', help='компилятор (по умолчанию g++, затем clang++)')
     ap.add_argument('--no-browser', action='store_true')
     a = ap.parse_args()
-    if os.path.isdir(WORK):  # подчистить старые сборки
-        for n in os.listdir(WORK):
-            f = os.path.join(WORK, n)
-            try:
-                if time.time() - os.path.getmtime(f) > 86400:
-                    shutil.rmtree(f, ignore_errors=True) if os.path.isdir(f) else os.remove(f)
-            except OSError:
-                pass
+    cleanup_builds(max_age=int(os.environ.get('PVK_BUILD_TTL', 86400)), every=3600)
     c = Compiler(a.cxx)
     Handler.compiler = c
     try:
-        srv = Server(('127.0.0.1', a.port), Handler)
+        srv = Server((HOST, a.port), Handler)
     except OSError as e:
         print(f'Порт {a.port} занят ({e}). Запусти с другим: python3 server.py --port 8800')
         sys.exit(1)
