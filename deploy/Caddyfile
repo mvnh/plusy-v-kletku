@@ -2,5 +2,16 @@ plusy.dammit.dev {
 	# логин и пароль: файл auth.caddy создаёт ./set-password.sh
 	import /etc/caddy/auth.caddy
 	encode zstd gzip
-	reverse_proxy pvk:8737
+
+	# ИИ-тьютор и статус — в контейнер с ключом, но без выполнения кода
+	handle /api/ai {
+		reverse_proxy ai:8737
+	}
+	handle /api/info {
+		reverse_proxy ai:8737
+	}
+	# всё остальное, включая сборку и запуск кода, — в изолированный контейнер
+	handle {
+		reverse_proxy pvk:8737
+	}
 }

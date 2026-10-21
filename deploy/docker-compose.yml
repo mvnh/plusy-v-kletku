@@ -1,5 +1,10 @@
 # Запуск: cd deploy && docker compose up -d --build
 # Подробно — deploy/README.md.
+#
+# Два контейнера из одного образа:
+#   pvk — собирает и запускает присланный код; без интернета и без ключей;
+#   ai  — ходит в API нейросети с ключом; чужой код в нём не выполняется.
+# Caddy отправляет /api/ai и /api/info в ai, остальное — в pvk.
 
 services:
   caddy:
@@ -14,12 +19,14 @@ services:
       - ./auth.caddy:/etc/caddy/auth.caddy:ro
       - caddy_data:/data
       - caddy_config:/config
-    networks: [web, pvk]
+    networks: [web, pvk, ai]
 
   pvk:
     build: ..
+    image: pvk:local
     restart: always
     environment:
+      PVK_ROLE: runner
       PVK_ALLOWED_HOSTS: plusy.dammit.dev   # тот же домен, что в Caddyfile
       PVK_BUILD_TTL: "3600"                 # сборки живут час, иначе /tmp переполнится
     # Изоляция: контейнер выполняет присланный код, поэтому
@@ -34,8 +41,29 @@ services:
     cpus: 0.75                              # Caddy и SSH остаются отзывчивыми
     networks: [pvk]                         # сеть internal: из контейнера нет выхода в интернет
 
+  ai:
+    build: ..                               # тот же образ: вторая сборка берётся из кэша
+    image: pvk:local
+    restart: always
+    environment:
+      PVK_ROLE: ai
+      PVK_ALLOWED_HOSTS: plusy.dammit.dev
+    env_file:
+      - path: ./ai.env                      # ключ API; без файла ИИ просто выключен
+        required: false
+    user: "1000:1000"
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 64
+    mem_limit: 256m
+    networks: [ai]                          # есть интернет, но нет общей сети с pvk
+
 networks:
   web: {}
+  ai: {}
   pvk:
     internal: true
 
