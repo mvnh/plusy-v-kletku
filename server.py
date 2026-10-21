@@ -15,6 +15,8 @@
 Для сервера (только в изолированном контейнере, см. deploy/README.md):
          PVK_HOST=0.0.0.0              — на каком адресе слушать
          PVK_ALLOWED_HOSTS=example.com — какие домены разрешены в заголовке Host (через запятую)
+         PVK_ROLE=runner|ai            — только запуск кода или только ИИ (по умолчанию всё вместе)
+         OPENAI_PROJECT=...            — заголовок OpenAI-Project (для Yandex AI Studio — ID каталога)
 """
 import argparse, hashlib, http.server, json, os, platform, shutil, signal, socketserver
 import subprocess, sys, tempfile, threading, time, urllib.error, urllib.parse, urllib.request, webbrowser
@@ -25,6 +27,9 @@ HOST = os.environ.get('PVK_HOST', '127.0.0.1')
 ALLOWED_HOSTS = {'127.0.0.1', 'localhost', '[::1]'} | {
     h.strip().lower() for h in os.environ.get('PVK_ALLOWED_HOSTS', '').split(',') if h.strip()}
 SECRET_ENV = ('ANTHROPIC_API_KEY', 'OPENAI_API_KEY')  # не отдаём ключи запускаемым программам
+# all — всё в одном процессе (локально); runner — только сборка и запуск кода, без ИИ;
+# ai — только ИИ, без выполнения кода. На сервере это два разных контейнера.
+ROLE = os.environ.get('PVK_ROLE', 'all')
 IS_WIN = os.name == 'nt'
 EXE = '.exe' if IS_WIN else ''
 OUT_CAP = 200_000
@@ -294,7 +299,10 @@ def ai_call(body):
                                                                    'parameters': t.get('input_schema') or {'type': 'object', 'properties': {}}}}
                                 for t in body['tools']]
         base = os.environ.get('OPENAI_BASE_URL', 'https://api.openai.com/v1').rstrip('/')  # Azure, OpenRouter, Ollama и т.п.
-        code, data = ai_post(base + '/chat/completions', {'Authorization': 'Bearer ' + key}, payload)
+        headers = {'Authorization': 'Bearer ' + key}
+        if os.environ.get('OPENAI_PROJECT'):  # OpenAI-проект; у Yandex AI Studio сюда идёт ID каталога
+            headers['OpenAI-Project'] = os.environ['OPENAI_PROJECT']
+        code, data = ai_post(base + '/chat/completions', headers, payload)
         return (code, openai_to_anthropic(data)) if code == 200 else (code, openai_error(code, data))
     payload = {
         'model': ai_model(provider),
@@ -379,6 +387,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         except Exception:
             return self._json(400, {'error': 'bad json'})
         p = self.path.split('?')[0]
+        if (ROLE == 'ai' and p in ('/api/compile', '/api/run')) or (ROLE == 'runner' and p == '/api/ai'):
+            return self.send_error(403)
         if p == '/api/compile':
             return self._json(200, self.compiler.compile(str(body.get('src', '')), str(body.get('opt', '-O0'))))
         if p == '/api/run':
