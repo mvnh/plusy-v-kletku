@@ -35,7 +35,7 @@ ufw allow OpenSSH && ufw allow 80,443/tcp && ufw allow 443/udp && ufw --force en
 ```sh
 git clone https://github.com/mvnh/plusy-v-kletku
 cd plusy-v-kletku/deploy
-./set-password.sh            # придумать логин и пароль для входа
+./user.sh add ИМЯ            # свой логин и пароль для входа
 docker compose up -d --build
 ```
 
@@ -58,7 +58,7 @@ API Anthropic и OpenAI с российских IP недоступны, поэ�
 (OpenAI-совместимый API): ключ API и ID каталога берутся в консоли Yandex Cloud.
 Подойдёт и любой другой OpenAI-совместимый сервис.
 
-Поставь в консоли провайдера лимит расходов: тьютором пользуются все, кто знает пароль.
+Поставь в консоли провайдера лимит расходов: тьютором пользуются все, у кого есть логин.
 
 ## Обновление
 
@@ -69,5 +69,8 @@ cd ~/plusy-v-kletku && git pull && cd deploy && docker compose up -d --build
 ## Полезное
 
 - Логи: `docker compose logs -f pvk` (или `caddy`)
-- Сменить пароль: `./set-password.sh && docker compose restart caddy`
+- Пользователи (окно логина в браузере), Caddy перезагружается сам:
+  - `./user.sh add ИМЯ` — добавить друга или сменить пароль
+  - `./user.sh del ИМЯ` — удалить
+  - `./user.sh list` — список
 - Другой домен: поменять его в `Caddyfile` и в `PVK_ALLOWED_HOSTS` в `docker-compose.yml`
