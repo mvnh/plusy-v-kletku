@@ -1,2 +1,4 @@
 auth.caddy
 ai.env
+users.txt
+users.tmp
