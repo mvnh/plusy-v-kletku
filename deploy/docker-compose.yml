@@ -1,0 +1,44 @@
+# Запуск: cd deploy && docker compose up -d --build
+# Подробно — deploy/README.md.
+
+services:
+  caddy:
+    image: caddy:2
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./auth.caddy:/etc/caddy/auth.caddy:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks: [web, pvk]
+
+  pvk:
+    build: ..
+    restart: always
+    environment:
+      PVK_ALLOWED_HOSTS: plusy.dammit.dev   # тот же домен, что в Caddyfile
+      PVK_BUILD_TTL: "3600"                 # сборки живут час, иначе /tmp переполнится
+    # Изоляция: контейнер выполняет присланный код, поэтому
+    user: "1000:1000"
+    read_only: true                         # файлы платформы не перепишешь
+    tmpfs:
+      - /tmp:exec,size=512m                 # сюда собираются и отсюда запускаются программы
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    pids_limit: 128                         # fork-бомба упрётся в лимит
+    mem_limit: 1g
+    cpus: 0.75                              # Caddy и SSH остаются отзывчивыми
+    networks: [pvk]                         # сеть internal: из контейнера нет выхода в интернет
+
+networks:
+  web: {}
+  pvk:
+    internal: true
+
+volumes:
+  caddy_data: {}
+  caddy_config: {}
